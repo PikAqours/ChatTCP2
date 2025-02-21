@@ -64,12 +64,40 @@ class RegistroHandler extends Thread {
                 if (partes.length == 3) {
                     String username = partes[1];
                     String password = partes[2];
+
+                    // First check if user is already active
+                    if (ActiveUsers.isUserActive(username)) {
+                        salida.writeUTF("ERROR: Usuario ya está conectado");
+                        return;
+                    }
+
+                    // Then validate credentials
                     boolean valid = UsuariosDB.validarUsuario(username, password);
                     if (valid) {
-                        salida.writeUTF("OK");
+                        // Try to set user as active
+                        if (ActiveUsers.setUserActive(username)) {
+                            salida.writeUTF("OK");
+
+                            // Add shutdown hook to ensure user is marked as inactive when connection is lost
+                            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                                ActiveUsers.setUserInactive(username);
+                            }));
+                        } else {
+                            salida.writeUTF("ERROR: Usuario ya está conectado");
+                        }
                     } else {
                         salida.writeUTF("ERROR: Credenciales inválidas");
                     }
+                } else {
+                    salida.writeUTF("ERROR: Formato incorrecto");
+                }
+            } else if (mensaje.startsWith("LOGOUT;")) {
+                // Add logout handling
+                String[] partes = mensaje.split(";");
+                if (partes.length == 2) {
+                    String username = partes[1];
+                    ActiveUsers.setUserInactive(username);
+                    salida.writeUTF("OK");
                 } else {
                     salida.writeUTF("ERROR: Formato incorrecto");
                 }

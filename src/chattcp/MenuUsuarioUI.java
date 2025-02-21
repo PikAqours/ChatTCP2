@@ -38,8 +38,26 @@ public class MenuUsuarioUI extends JFrame {
     private void inicializarUI() {
         // Configuración básica de la ventana
         setTitle("Menú Principal - " + nombreUsuario);
-        setSize(450, 450); // Ligeramente más alto para acomodar las secciones
+        setSize(450, 450);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                int confirmar = JOptionPane.showConfirmDialog(
+                        MenuUsuarioUI.this,
+                        "¿Estás seguro que deseas cerrar sesión?",
+                        "Confirmar Salida",
+                        JOptionPane.YES_NO_OPTION,
+                        JOptionPane.QUESTION_MESSAGE
+                );
+
+                if (confirmar == JOptionPane.YES_OPTION) {
+                    logout();
+                    dispose();
+                    new LoginForm(serverIP).setVisible(true);
+                }
+            }
+        });
         setLocationRelativeTo(null);
         setResizable(false);
 
@@ -183,6 +201,7 @@ public class MenuUsuarioUI extends JFrame {
             );
 
             if (confirmar == JOptionPane.YES_OPTION) {
+                logout();
                 dispose();
                 new LoginForm(serverIP).setVisible(true);
             }
@@ -216,7 +235,18 @@ public class MenuUsuarioUI extends JFrame {
 
         setVisible(true);
     }
+    private void logout() {
+        try (Socket socket = new Socket(serverIP, 44445);
+             DataOutputStream salida = new DataOutputStream(socket.getOutputStream());
+             DataInputStream entrada = new DataInputStream(socket.getInputStream())) {
 
+            salida.writeUTF("LOGOUT;" + nombreUsuario);
+            String response = entrada.readUTF();
+            System.out.println("Logout response: " + response);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
     private void mostrarListaUsuarios() {
         List<String> usuarios = obtenerUsuariosDisponibles();
         if (usuarios.isEmpty()) {

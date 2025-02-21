@@ -1,6 +1,5 @@
 package chattcp;
 
-import com.formdev.flatlaf.FlatLightLaf;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.plaf.basic.BasicScrollBarUI;
@@ -48,6 +47,7 @@ public class Cliente extends javax.swing.JFrame implements Runnable {
                 try {
                     if (socket != null && !socket.isClosed()) {
                         fsalida.writeUTF("*");
+
                         socket.close();
                     }
                     dispose();
@@ -254,11 +254,11 @@ public class Cliente extends javax.swing.JFrame implements Runnable {
     }
 
 
-
     private void btnSalirActionPerformed(java.awt.event.ActionEvent evt) {
         try {
             fsalida.writeUTF("*");
             repetir = false;
+
             socket.close();
             dispose();
         } catch(IOException e) {
