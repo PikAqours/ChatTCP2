@@ -58,7 +58,27 @@ public class HiloServidorChat extends Thread {
             System.out.println("Error enviando historial a " + usuarioActual);
         }
     }
-
+    private void enviarMensajeGrupo(String grupo, String contenido) {
+        // Save message to database
+        if (GrupoMensajesDB.saveGroupMessage(usuarioActual, grupo, contenido)) {
+            // If message was saved successfully, send to all online group members
+            List<String> miembros = UsuariosDB.obtenerMiembrosGrupo(grupo);
+            for (String miembro : miembros) {
+                Socket socketDestino = comun.getSocketUsuario(miembro);
+                if (socketDestino != null && !socketDestino.isClosed()) {
+                    try {
+                        DataOutputStream fsalida = new DataOutputStream(socketDestino.getOutputStream());
+                        // Send the actual message
+                        fsalida.writeUTF("/grupo " + usuarioActual + " " + contenido);
+                        // Send update notification
+                        fsalida.writeUTF("/actualizar_grupo " + grupo);
+                    } catch (IOException e) {
+                        System.out.println("Error enviando mensaje a " + miembro);
+                    }
+                }
+            }
+        }
+    }
     @Override
     public void run() {
         try {
@@ -81,6 +101,16 @@ public class HiloServidorChat extends Thread {
                             enviarMensajePrivado(destinatario, contenido);
                         }
                     }
+                } else if (mensaje.startsWith("/grupo ")) {
+                    String[] partes = mensaje.split(" ", 3);
+                    if (partes.length >= 3) {
+                        String grupo = partes[1];
+                        String contenido = partes[2];
+
+                        if (UsuariosDB.perteneceAlGrupo(usuarioActual, grupo)) {
+                            enviarMensajeGrupo(grupo, contenido);
+                        }
+                    }
                 } else if (mensaje.startsWith("/historial ")) {
                     String contacto = mensaje.split(" ", 2)[1];
                     if (UsuariosDB.sonContactos(usuarioActual, contacto)) {
@@ -96,7 +126,8 @@ public class HiloServidorChat extends Thread {
                 if (socket != null && !socket.isClosed()) {
                     socket.close();
                 }
-            } catch (IOException ignored) {}
+            } catch (IOException ignored) {
+            }
         }
     }
 }

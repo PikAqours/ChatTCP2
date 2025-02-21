@@ -388,8 +388,27 @@ public class MenuUsuarioUI extends JFrame {
 
     // Método para abrir el chat del grupo (a implementar según la lógica de tu aplicación)
     private void abrirChatGrupo(String grupo) {
-        System.out.println("Abriendo chat del grupo: " + grupo);
-        // Aquí va la lógica para abrir la interfaz de chat del grupo
+        try {
+            // Verify user belongs to the group
+            if (!UsuariosDB.perteneceAlGrupo(nombreUsuario, grupo)) {
+                JOptionPane.showMessageDialog(this,
+                        "No puedes acceder a este grupo porque no eres miembro.",
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            Socket socket = new Socket(serverIP, 44444);
+            ClienteGrupo cliente = new ClienteGrupo(socket, nombreUsuario, grupo);
+            cliente.setBounds(0, 0, 540, 400);
+            cliente.setVisible(true);
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this,
+                    "No se pudo conectar al servidor de chat",
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        }
     }
 
     // Método para abrir un chat con un contacto
