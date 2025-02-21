@@ -33,7 +33,10 @@ public class HiloServidorChat extends Thread {
             if (socketDestino != null && !socketDestino.isClosed()) {
                 try {
                     DataOutputStream fsalida = new DataOutputStream(socketDestino.getOutputStream());
-                    fsalida.writeUTF("MSG:" + usuarioActual + ":" + contenido);
+                    // Send the actual message
+                    fsalida.writeUTF("/privado " + usuarioActual + " " + contenido);
+                    // Send update notification
+                    fsalida.writeUTF("/actualizar " + usuarioActual);
                 } catch (IOException e) {
                     System.out.println("Error enviando mensaje a " + destinatario);
                 }

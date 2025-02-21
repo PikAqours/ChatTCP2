@@ -185,6 +185,15 @@ public class Cliente extends javax.swing.JFrame implements Runnable {
         }
     }
 
+    private void handleUpdateNotification(String sender) {
+        // Reload chat history when we receive an update notification
+        try {
+            fsalida.writeUTF("/historial " + sender);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     @Override
     public void run() {
         while(repetir) {
@@ -202,6 +211,17 @@ public class Cliente extends javax.swing.JFrame implements Runnable {
                                 sender,
                                 content);
                         appendMessage(formattedMessage);
+                    }
+                } else if (texto.startsWith("/actualizar ")) {
+                    // Handle update notification
+                    String sender = texto.split(" ", 2)[1];
+                    handleUpdateNotification(sender);
+                } else if (texto.equals("HISTORY_START")) {
+                    textArea1.setText(""); // Clear the chat area before loading history
+                    while (!(texto = fentrada.readUTF()).equals("HISTORY_END")) {
+                        if (texto.startsWith("HIST:")) {
+                            appendMessage(texto.substring(5));
+                        }
                     }
                 } else if (texto.equals("*")) {
                     repetir = false;
