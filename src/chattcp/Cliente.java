@@ -55,6 +55,10 @@ public class Cliente extends javax.swing.JFrame implements Runnable {
             // Load chat history after initializing components
             loadChatHistory();
 
+            // Start the message receiving thread
+            Thread messageThread = new Thread(this);
+            messageThread.start();
+
         } catch (IOException e) {
             JOptionPane.showMessageDialog(this,
                     "Error al iniciar el chat",
@@ -65,29 +69,31 @@ public class Cliente extends javax.swing.JFrame implements Runnable {
     }
 
     private void loadChatHistory() {
-        try (Socket historySocket = new Socket(serverIP, 44446)) {
-            DataOutputStream salida = new DataOutputStream(historySocket.getOutputStream());
-            DataInputStream entrada = new DataInputStream(historySocket.getInputStream());
+        SwingUtilities.invokeLater(() -> {
+            try (Socket historySocket = new Socket(serverIP, 44446)) {
+                DataOutputStream salida = new DataOutputStream(historySocket.getOutputStream());
+                DataInputStream entrada = new DataInputStream(historySocket.getInputStream());
 
-            // Request chat history from server
-            String comando = "OBTENER_HISTORIAL;" + nombre + ";" + destinatario;
-            salida.writeUTF(comando);
+                // Request chat history from server
+                String comando = "OBTENER_HISTORIAL;" + nombre + ";" + destinatario;
+                salida.writeUTF(comando);
 
-            // Read response
-            String response = entrada.readUTF();
-            if (response.equals("HISTORY_START")) {
-                textArea1.setText(""); // Clear current chat
-                while (!(response = entrada.readUTF()).equals("HISTORY_END")) {
-                    appendMessage(response);
+                // Read response
+                String response = entrada.readUTF();
+                if (response.equals("HISTORY_START")) {
+                    textArea1.setText(""); // Clear current chat
+                    while (!(response = entrada.readUTF()).equals("HISTORY_END")) {
+                        appendMessage(response);
+                    }
                 }
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(this,
+                        "Error al cargar el historial del chat",
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+                e.printStackTrace();
             }
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(this,
-                    "Error al cargar el historial del chat",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
-            e.printStackTrace();
-        }
+        });
     }
 
     private void btnEnviarActionPerformed(java.awt.event.ActionEvent evt) {
@@ -211,16 +217,21 @@ public class Cliente extends javax.swing.JFrame implements Runnable {
                                 sender,
                                 content);
                         appendMessage(formattedMessage);
+
+                        // Request chat history update after receiving a message
+                        loadChatHistory();
                     }
                 } else if (texto.startsWith("/actualizar ")) {
                     // Handle update notification
-                    String sender = texto.split(" ", 2)[1];
-                    handleUpdateNotification(sender);
+                    loadChatHistory();  // Directly load chat history instead of sending another request
                 } else if (texto.equals("HISTORY_START")) {
-                    textArea1.setText(""); // Clear the chat area before loading history
+                    SwingUtilities.invokeLater(() -> {
+                        textArea1.setText(""); // Clear the chat area before loading history
+                    });
                     while (!(texto = fentrada.readUTF()).equals("HISTORY_END")) {
                         if (texto.startsWith("HIST:")) {
-                            appendMessage(texto.substring(5));
+                            final String messageText = texto.substring(5);
+                            appendMessage(messageText);
                         }
                     }
                 } else if (texto.equals("*")) {
