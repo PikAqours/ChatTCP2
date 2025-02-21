@@ -60,7 +60,7 @@ public class HiloServidorChat extends Thread {
     }
     private void enviarMensajeGrupo(String grupo, String contenido) {
         // Save message to database
-        if (GrupoMensajesDB.saveGroupMessage(usuarioActual, grupo, contenido)) {
+        if (MensajesDB.saveGroupMessage(usuarioActual, grupo, contenido)) {
             // If message was saved successfully, send to all online group members
             List<String> miembros = UsuariosDB.obtenerMiembrosGrupo(grupo);
             for (String miembro : miembros) {
@@ -79,6 +79,7 @@ public class HiloServidorChat extends Thread {
             }
         }
     }
+
     @Override
     public void run() {
         try {
@@ -111,6 +112,7 @@ public class HiloServidorChat extends Thread {
                             enviarMensajeGrupo(grupo, contenido);
                         }
                     }
+
                 } else if (mensaje.startsWith("/historial ")) {
                     String contacto = mensaje.split(" ", 2)[1];
                     if (UsuariosDB.sonContactos(usuarioActual, contacto)) {

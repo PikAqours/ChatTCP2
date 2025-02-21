@@ -9,9 +9,15 @@ public class GrupoMensajesDB {
 
     // Save a group message
     public static boolean saveGroupMessage(String fromUser, String groupName, String message) {
-        String sql = "INSERT INTO mensajes_grupo (id_usuario, id_grupo, mensaje) VALUES (" +
-                "(SELECT id FROM usuarios WHERE nombre_usuario = ?), " +
-                "(SELECT id FROM grupos WHERE nombre = ?), ?)";
+        String sql = """
+            INSERT INTO mensajes (id_usuario, id_grupo, mensaje, fecha) 
+            VALUES (
+                (SELECT id FROM usuarios WHERE nombre_usuario = ?),
+                (SELECT id FROM grupos WHERE nombre = ?),
+                ?,
+                CURRENT_TIMESTAMP
+            )
+        """;
 
         try (Connection conn = DriverManager.getConnection(URL);
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -23,6 +29,7 @@ public class GrupoMensajesDB {
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
             System.out.println("Error saving group message: " + e.getMessage());
+            e.printStackTrace();
             return false;
         }
     }
@@ -35,7 +42,7 @@ public class GrupoMensajesDB {
                    u.nombre_usuario as sender_name,
                    m.mensaje,
                    m.fecha
-            FROM mensajes_grupo m
+            FROM mensajes m
             JOIN usuarios u ON m.id_usuario = u.id
             JOIN grupos g ON m.id_grupo = g.id
             WHERE g.nombre = ?
