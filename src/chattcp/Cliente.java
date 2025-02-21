@@ -19,6 +19,7 @@ public class Cliente extends javax.swing.JFrame implements Runnable {
     private DataOutputStream fsalida;
     private String serverIP;
     private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    private long lastMessageTimestamp = 0;
 
 
     // Constructor for private chat
@@ -69,31 +70,29 @@ public class Cliente extends javax.swing.JFrame implements Runnable {
     }
 
     private void loadChatHistory() {
-        SwingUtilities.invokeLater(() -> {
-            try (Socket historySocket = new Socket(serverIP, 44446)) {
-                DataOutputStream salida = new DataOutputStream(historySocket.getOutputStream());
-                DataInputStream entrada = new DataInputStream(historySocket.getInputStream());
+        try (Socket historySocket = new Socket(serverIP, 44446)) {
+            DataOutputStream salida = new DataOutputStream(historySocket.getOutputStream());
+            DataInputStream entrada = new DataInputStream(historySocket.getInputStream());
 
-                // Request chat history from server
-                String comando = "OBTENER_HISTORIAL;" + nombre + ";" + destinatario;
-                salida.writeUTF(comando);
+            // Request chat history from server
+            String comando = "OBTENER_HISTORIAL;" + nombre + ";" + destinatario;
+            salida.writeUTF(comando);
 
-                // Read response
-                String response = entrada.readUTF();
-                if (response.equals("HISTORY_START")) {
-                    textArea1.setText(""); // Clear current chat
-                    while (!(response = entrada.readUTF()).equals("HISTORY_END")) {
-                        appendMessage(response);
-                    }
+            // Read response
+            String response = entrada.readUTF();
+            if (response.equals("HISTORY_START")) {
+                SwingUtilities.invokeLater(() -> textArea1.setText("")); // Clear current chat
+                while (!(response = entrada.readUTF()).equals("HISTORY_END")) {
+                    appendMessage(response, false); // Pass false to indicate this is from history
                 }
-            } catch (IOException e) {
-                JOptionPane.showMessageDialog(this,
-                        "Error al cargar el historial del chat",
-                        "Error",
-                        JOptionPane.ERROR_MESSAGE);
-                e.printStackTrace();
             }
-        });
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this,
+                    "Error al cargar el historial del chat",
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        }
     }
 
     private void btnEnviarActionPerformed(java.awt.event.ActionEvent evt) {
@@ -109,7 +108,7 @@ public class Cliente extends javax.swing.JFrame implements Runnable {
                     sdf.format(new Timestamp(System.currentTimeMillis())),
                     nombre,
                     texto);
-            appendMessage(formattedMessage);
+            appendMessage(formattedMessage, true); // Pass true for new messages
 
             mensaje.setText("");
             mensaje.requestFocus();
@@ -178,8 +177,23 @@ public class Cliente extends javax.swing.JFrame implements Runnable {
         }
     }
 
-    private void appendMessage(String text) {
+    private void appendMessage(String text, boolean isNewMessage) {
         if (text != null && !text.isEmpty()) {
+            // For new messages (not from history), check if we've already displayed this message
+            if (isNewMessage) {
+                // Extract timestamp from the message format [YYYY-MM-DD HH:mm:ss]
+                try {
+                    String timestampStr = text.substring(1, 20);
+                    Timestamp msgTimestamp = Timestamp.valueOf(timestampStr);
+                    if (msgTimestamp.getTime() <= lastMessageTimestamp) {
+                        return; // Skip if we've already shown this message
+                    }
+                    lastMessageTimestamp = msgTimestamp.getTime();
+                } catch (Exception e) {
+                    // If there's any error parsing the timestamp, just show the message
+                }
+            }
+
             SwingUtilities.invokeLater(() -> {
                 if (textArea1.getText().isEmpty()) {
                     textArea1.setText(text);
@@ -190,6 +204,7 @@ public class Cliente extends javax.swing.JFrame implements Runnable {
             });
         }
     }
+
 
     private void handleUpdateNotification(String sender) {
         // Reload chat history when we receive an update notification
@@ -216,7 +231,7 @@ public class Cliente extends javax.swing.JFrame implements Runnable {
                                 sdf.format(new Timestamp(System.currentTimeMillis())),
                                 sender,
                                 content);
-                        appendMessage(formattedMessage);
+                        appendMessage(formattedMessage, true);
 
                         // Request chat history update after receiving a message
                         loadChatHistory();
@@ -230,8 +245,9 @@ public class Cliente extends javax.swing.JFrame implements Runnable {
                     });
                     while (!(texto = fentrada.readUTF()).equals("HISTORY_END")) {
                         if (texto.startsWith("HIST:")) {
-                            final String messageText = texto.substring(5);
-                            appendMessage(messageText);
+                            if (texto.startsWith("HIST:")) {
+                                appendMessage(texto.substring(5), false); // Pass false for history messages
+                            }
                         }
                     }
                 } else if (texto.equals("*")) {
