@@ -1,4 +1,4 @@
-package chattcp;
+package chattcp.ServerConfig;
 
 import java.net.Socket;
 import java.util.ArrayList;

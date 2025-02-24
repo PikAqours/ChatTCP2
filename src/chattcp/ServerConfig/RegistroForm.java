@@ -1,4 +1,4 @@
-package chattcp;
+package chattcp.ServerConfig;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;

@@ -1,4 +1,4 @@
-package chattcp;
+package chattcp.ServerConfig;
 
 
 import org.mindrot.jbcrypt.BCrypt;

@@ -1,4 +1,7 @@
-    package chattcp;
+    package chattcp.Interfaces;
+
+    import chattcp.ServerConfig.Notificacion;
+    import chattcp.ServerConfig.UsuariosDB;
 
     import javax.swing.*;
     import javax.swing.border.EmptyBorder;

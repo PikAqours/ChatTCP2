@@ -1,9 +1,10 @@
-package chattcp;
+package chattcp.ServerConfig;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
 import org.mindrot.jbcrypt.BCrypt;
 
 

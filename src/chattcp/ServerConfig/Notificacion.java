@@ -1,4 +1,4 @@
-package chattcp;
+package chattcp.ServerConfig;
 
 import java.awt.*;
 import java.awt.TrayIcon.MessageType;

@@ -1,5 +1,8 @@
 package chattcp;
 
+import chattcp.ServerConfig.UsuariosActivos;
+import chattcp.ServerConfig.UsuariosDB;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;

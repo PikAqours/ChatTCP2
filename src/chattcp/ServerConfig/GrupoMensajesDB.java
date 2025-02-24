@@ -1,4 +1,4 @@
-package chattcp;
+package chattcp.ServerConfig;
 
 import java.sql.*;
 import java.util.ArrayList;

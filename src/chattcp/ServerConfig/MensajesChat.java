@@ -1,4 +1,4 @@
-package chattcp;
+package chattcp.ServerConfig;
 
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;

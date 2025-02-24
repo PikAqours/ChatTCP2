@@ -1,4 +1,7 @@
-package chattcp;
+package chattcp.Interfaces;
+
+import chattcp.ServerConfig.GrupoMensajesDB;
+import chattcp.ServerConfig.MensajesChat;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -9,16 +12,20 @@ import java.io.*;
 import java.net.Socket;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.util.List;
 
-public class Cliente extends javax.swing.JFrame implements Runnable {
-    private Socket socket = null;
-    private String nombre;
-    private boolean repetir = true;
-    private String destinatario;
+public class ClienteGrupo extends JFrame implements Runnable {
+    private JTextArea textArea1;
+    private JTextField mensaje;
+    private JButton btnEnviar;
+    private JButton btnSalir;
+    private JButton btnConfig;
+    private Socket socket;
     private DataInputStream fentrada;
     private DataOutputStream fsalida;
-    private String serverIP;
-    private Notificacion notificacion;
+    private String usuario;
+    private String grupo;
+    private boolean repetir = true;
     private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     private long lastMessageTimestamp = 0;
     private final Color PRIMARY_COLOR = new Color(75, 0, 130);      // Índigo
@@ -28,105 +35,36 @@ public class Cliente extends javax.swing.JFrame implements Runnable {
     private final Font TITLE_FONT = new Font("Segoe UI", Font.BOLD, 16);
     private final Font MESSAGE_FONT = new Font("Segoe UI", Font.PLAIN, 14);
     private final Font BUTTON_FONT = new Font("Segoe UI", Font.BOLD, 14);
+    private boolean isAdmin = false;
+   
+    private JPanel mainPanel;
+    private JPanel chatPanel;
+    private JPanel configPanel;
+    private ConfiguracionGrupo configuracionGrupo;
 
-
-    // Constructor for private chat
-    public Cliente(Socket s, String nombre, String destinatario) {
-        super("Chat Privado: " + nombre + " - " + destinatario);
-        this.destinatario = destinatario;
-        this.nombre = nombre;
-        this.socket = s;
-        this.serverIP = s.getInetAddress().getHostAddress();
+    public ClienteGrupo(Socket socket, String usuario, String grupo) {
+        super("Chat de Grupo: " + grupo);
+        this.socket = socket;
+        this.usuario = usuario;
+        this.grupo = grupo;
 
         try {
-            this.notificacion = Notificacion.getInstance();
-        } catch (Exception e) {
-            System.out.println("No se pudo inicializar el sistema de notificaciones");
+            fentrada = new DataInputStream(socket.getInputStream());
+            fsalida = new DataOutputStream(socket.getOutputStream());
+            fsalida.writeUTF(usuario); // Send username to server
+        } catch (IOException e) {
+            System.out.println("ERROR DE E/S");
+            e.printStackTrace();
+            System.exit(0);
         }
-        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-        addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosing(WindowEvent e) {
-                btnSalirActionPerformed(null);
-            }
-        });
 
         initComponents();
-
-        try {
-            fentrada = new DataInputStream(s.getInputStream());
-            fsalida = new DataOutputStream(s.getOutputStream());
-            fsalida.writeUTF(nombre);
-
-            // Load chat history after initializing components
-            loadChatHistory();
-
-            // Start the message receiving thread
-            Thread messageThread = new Thread(this);
-            messageThread.start();
-
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(this,
-                    "Error al iniciar el chat",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
-            dispose();
-        }
-    }
-
-    private void loadChatHistory() {
-        try (Socket historySocket = new Socket(serverIP, 44446)) {
-            DataOutputStream salida = new DataOutputStream(historySocket.getOutputStream());
-            DataInputStream entrada = new DataInputStream(historySocket.getInputStream());
-
-            // Request chat history from server
-            String comando = "OBTENER_HISTORIAL;" + nombre + ";" + destinatario;
-            salida.writeUTF(comando);
-
-            // Read response
-            String response = entrada.readUTF();
-            if (response.equals("HISTORY_START")) {
-                SwingUtilities.invokeLater(() -> textArea1.setText("")); // Clear current chat
-                while (!(response = entrada.readUTF()).equals("HISTORY_END")) {
-                    appendMessage(response, false); // Pass false to indicate this is from history
-                }
-            }
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(this,
-                    "Error al cargar el historial del chat",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
-            e.printStackTrace();
-        }
-    }
-
-    private void btnEnviarActionPerformed(java.awt.event.ActionEvent evt) {
-        String texto = mensaje.getText().trim();
-        if(texto.isEmpty()) return;
-
-        try {
-            String mensajePrivado = "/privado " + destinatario + " " + texto;
-            fsalida.writeUTF(mensajePrivado);
-
-            // Format message with timestamp and username consistently
-            String formattedMessage = String.format("[%s] %s> %s",
-                    sdf.format(new Timestamp(System.currentTimeMillis())),
-                    nombre,
-                    texto);
-            appendMessage(formattedMessage, true); // Pass true for new messages
-
-            mensaje.setText("");
-            mensaje.requestFocus();
-        } catch(IOException e) {
-            JOptionPane.showMessageDialog(this,
-                    "Error al enviar el mensaje",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
-        }
+        loadGroupChatHistory();
+        new Thread(this).start();
     }
 
     private void initComponents() {
-        setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setPreferredSize(new Dimension(500, 600));
 
         // Configurar el color de la barra de título
@@ -138,13 +76,43 @@ public class Cliente extends javax.swing.JFrame implements Runnable {
         mainPanel.setBackground(BG_COLOR);
         mainPanel.setBorder(new EmptyBorder(20, 25, 20, 25));
 
-        // Panel superior con información del chat
+        // Panel superior con información del grupo
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setBackground(BG_COLOR);
-        JLabel chatLabel = new JLabel("Chat con: " + destinatario, SwingConstants.CENTER);
-        chatLabel.setFont(TITLE_FONT);
-        chatLabel.setForeground(PRIMARY_COLOR);
-        headerPanel.add(chatLabel, BorderLayout.CENTER);
+
+        JLabel groupLabel = new JLabel("Grupo: " + grupo, SwingConstants.CENTER);
+        groupLabel.setFont(TITLE_FONT);
+        groupLabel.setForeground(PRIMARY_COLOR);
+
+        // Añadir botón de configuración
+        ImageIcon configIconNormal = new ImageIcon(new ImageIcon("chatTCP/res/config_icon_2.png").getImage().getScaledInstance(48, 48, Image.SCALE_SMOOTH));
+        ImageIcon configIconDark = new ImageIcon(new ImageIcon("chatTCP/res/config_icon_2_dark.png").getImage().getScaledInstance(48, 48, Image.SCALE_SMOOTH));
+
+        btnConfig = new JButton(configIconNormal);
+        btnConfig.setContentAreaFilled(false);
+        btnConfig.setBorderPainted(false);
+        btnConfig.setFocusPainted(false);
+        btnConfig.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnConfig.addActionListener(e -> abrirConfiguracion());
+
+        btnConfig.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                btnConfig.setIcon(configIconDark);
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                btnConfig.setIcon(configIconNormal);
+            }
+        });
+
+        JPanel topRightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        topRightPanel.setBackground(BG_COLOR);
+        topRightPanel.add(btnConfig);
+
+        headerPanel.add(groupLabel, BorderLayout.CENTER);
+        headerPanel.add(topRightPanel, BorderLayout.EAST);
         headerPanel.setBorder(new EmptyBorder(0, 0, 10, 0));
 
         // Área de chat
@@ -208,6 +176,16 @@ public class Cliente extends javax.swing.JFrame implements Runnable {
         btnEnviar.addActionListener(e -> btnEnviarActionPerformed(e));
         btnSalir.addActionListener(e -> btnSalirActionPerformed(e));
 
+        // Evento de cierre de ventana
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                btnSalirActionPerformed(null);
+            }
+        });
+
+
+
         // Borde decorativo de la ventana
         getRootPane().setBorder(BorderFactory.createMatteBorder(2, 2, 2, 2, PRIMARY_COLOR));
 
@@ -215,8 +193,8 @@ public class Cliente extends javax.swing.JFrame implements Runnable {
         add(mainPanel);
         pack();
         setLocationRelativeTo(null);
-        //Atajos de teclado
 
+        // Añadir atajos de teclado
         InputMap inputMap = mainPanel.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
         ActionMap actionMap = mainPanel.getActionMap();
 
@@ -236,9 +214,32 @@ public class Cliente extends javax.swing.JFrame implements Runnable {
             }
         });
     }
-    /**
-     * Crea un botón estilizado
-     */
+    private boolean checkAdminStatus() {
+        try {
+            // Create new socket for DB connection
+            Socket dbSocket = new Socket("localhost", 44446);
+            DataOutputStream dbOut = new DataOutputStream(dbSocket.getOutputStream());
+            DataInputStream dbIn = new DataInputStream(dbSocket.getInputStream());
+
+            // Send command
+            String comando = String.format("CHECK_ADMIN;%s;%s", grupo, usuario);
+            dbOut.writeUTF(comando);
+
+            // Read response
+
+            boolean isAdmin = dbIn.readBoolean();
+
+
+            // Close DB connection
+            dbSocket.close();
+
+            return isAdmin;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     private JButton createStyledButton(String text, Color backgroundColor) {
         JButton button = new JButton(text);
         button.setFont(BUTTON_FONT);
@@ -267,12 +268,46 @@ public class Cliente extends javax.swing.JFrame implements Runnable {
         return button;
     }
 
+    private void abrirConfiguracion() {
+        if (checkAdminStatus()) {
+            SwingUtilities.invokeLater(() -> {
+                ConfiguracionGrupo configuracionGrupo = new ConfiguracionGrupo(socket, usuario, grupo);
+                configuracionGrupo.setVisible(true);
+            });
+        } else {
+            JOptionPane.showMessageDialog(this,
+                    "No tienes permisos de administrador para configurar este grupo.",
+                    "Acceso Denegado",
+                    JOptionPane.WARNING_MESSAGE);
+        }
+    }
+
+    private void loadGroupChatHistory() {
+        List<MensajesChat> historial = GrupoMensajesDB.getGroupChatHistory(grupo);
+        SwingUtilities.invokeLater(() -> {
+            textArea1.setText("");
+            for (MensajesChat msg : historial) {
+                appendMessage(msg.toString(), false);
+            }
+        });
+    }
+
+    private void btnEnviarActionPerformed(java.awt.event.ActionEvent evt) {
+        if (!mensaje.getText().trim().isEmpty()) {
+            try {
+                String texto = mensaje.getText();
+                fsalida.writeUTF("/grupo " + grupo + " " + texto);
+                mensaje.setText("");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
     private void btnSalirActionPerformed(java.awt.event.ActionEvent evt) {
         try {
             fsalida.writeUTF("*");
             repetir = false;
-
             socket.close();
             dispose();
         } catch(IOException e) {
@@ -282,14 +317,12 @@ public class Cliente extends javax.swing.JFrame implements Runnable {
 
     private void appendMessage(String text, boolean isNewMessage) {
         if (text != null && !text.isEmpty()) {
-            // For new messages (not from history), check if we've already displayed this message
             if (isNewMessage) {
-                // Extract timestamp from the message format [YYYY-MM-DD HH:mm:ss]
                 try {
                     String timestampStr = text.substring(1, 20);
                     Timestamp msgTimestamp = Timestamp.valueOf(timestampStr);
                     if (msgTimestamp.getTime() <= lastMessageTimestamp) {
-                        return; // Skip if we've already shown this message
+                        return;
                     }
                     lastMessageTimestamp = msgTimestamp.getTime();
                 } catch (Exception e) {
@@ -307,95 +340,70 @@ public class Cliente extends javax.swing.JFrame implements Runnable {
             });
         }
     }
-
-
-    private void handleUpdateNotification(String sender) {
-        // Reload chat history when we receive an update notification
+    private void cerrarVentana() {
         try {
-            fsalida.writeUTF("/historial " + sender);
-        } catch (IOException e) {
-            e.printStackTrace();
+            fsalida.writeUTF("*");
+            repetir = false;
+            socket.close();
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        } finally {
+            dispose();
         }
     }
-
     @Override
     public void run() {
         while(repetir) {
             try {
                 String texto = fentrada.readUTF();
-
-                if (texto.startsWith("/privado ")) {
+                if (texto.startsWith("/grupo ")) {
                     String[] parts = texto.split(" ", 3);
                     if (parts.length >= 3) {
                         String sender = parts[1];
                         String content = parts[2];
-                        // Format received message with timestamp
                         String formattedMessage = String.format("[%s] %s> %s",
                                 sdf.format(new Timestamp(System.currentTimeMillis())),
                                 sender,
                                 content);
                         appendMessage(formattedMessage, true);
-
-                        // Mostrar notificación si la ventana no está activa y el mensaje es del otro usuario
-                        if (!this.isFocused() && notificacion != null && !sender.equals(nombre)) {
-                            notificacion.mostrarNotificacionPrivada(sender, content);
+                    }
+                } else if (texto.startsWith("/actualizar_grupo ")) {
+                    loadGroupChatHistory();
+                }
+                else if (texto.startsWith("/cambio_nombre_grupo ")) {
+                    // Nuevo caso para manejar cambio de nombre
+                    String[] parts = texto.split(" ", 3);
+                    if (parts.length >= 3) {
+                        String grupoAntiguo = parts[1];
+                        String grupoNuevo = parts[2];
+                        if (this.grupo.equals(grupoAntiguo)) {
+                            this.grupo = grupoNuevo;
+                            SwingUtilities.invokeLater(() -> {
+                                setTitle("Chat de Grupo: " + grupoNuevo);
+                            });
                         }
                     }
-                } else if (texto.startsWith("/actualizar ")) {
-                    loadChatHistory();  // Cargar historial solo cuando se recibe una actualización
-                } else if (texto.equals("HISTORY_START")) {
+                }
+                else  if (texto.equals("/cerrar_ventana_chat")) {
+                    System.out.println("Recibida señal de cierre"); // Log para depuración
                     SwingUtilities.invokeLater(() -> {
-                        textArea1.setText(""); // Clear the chat area before loading history
+                        JOptionPane.showMessageDialog(this,
+                                "La configuración del grupo ha sido modificada.\nLa ventana de chat se cerrará.",
+                                "Información",
+                                JOptionPane.INFORMATION_MESSAGE);
+                        cerrarVentana();
                     });
-                    while (!(texto = fentrada.readUTF()).equals("HISTORY_END")) {
-                        if (texto.startsWith("HIST:")) {
-                            appendMessage(texto.substring(5), false); // Pass false for history messages
-                        }
-                    }
-                } else if (texto.equals("*")) {
-                    repetir = false;
-                    if (notificacion != null) {
-                        notificacion.mostrarNotificacionSistema(
-                                "Chat finalizado",
-                                "El usuario " + destinatario + " ha cerrado la conversación"
-                        );
-                    }
-                    JOptionPane.showMessageDialog(this,
-                            "El otro usuario ha cerrado la conversación",
-                            "Chat finalizado",
-                            JOptionPane.INFORMATION_MESSAGE);
-                    socket.close();
-                    dispose();
+                    break;
                 }
             } catch(IOException e) {
                 if (repetir) {
-                    if (notificacion != null) {
-                        notificacion.mostrarNotificacionSistema(
-                                "Error de conexión",
-                                "Se ha perdido la conexión con el servidor"
-                        );
-                    }
                     JOptionPane.showMessageDialog(this,
                             "Conexión con el servidor perdida",
                             "Error",
                             JOptionPane.ERROR_MESSAGE);
+                    repetir = false;
                 }
-                repetir = false;
-                try {
-                    if (socket != null && !socket.isClosed()) {
-                        socket.close();
-                    }
-                } catch (IOException e2) {
-                    e2.printStackTrace();
-                }
-                dispose();
             }
         }
     }
-
-    // Variables declaration
-    private JButton btnEnviar;
-    private JButton btnSalir;
-    private JTextField mensaje;
-    private JTextArea textArea1;
 }

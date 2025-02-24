@@ -4,6 +4,9 @@ import java.io.IOException;
 import java.net.Socket;
 import javax.swing.*;
 import javax.swing.UIManager; // Importa UIManager
+
+import chattcp.Interfaces.Cliente;
+import chattcp.Interfaces.ServerIPDialog;
 import com.formdev.flatlaf.FlatLightLaf; // Importa FlatLightLaf
 import javax.swing.UnsupportedLookAndFeelException; // Importa esta excepción
 

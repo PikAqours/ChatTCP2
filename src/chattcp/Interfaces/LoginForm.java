@@ -1,4 +1,6 @@
-package chattcp;
+package chattcp.Interfaces;
+
+import chattcp.ServerConfig.RegistroForm;
 
 import javax.swing.*;
 import java.awt.*;

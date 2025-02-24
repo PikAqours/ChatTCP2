@@ -1,5 +1,9 @@
 package chattcp;
 
+import chattcp.ServerConfig.ComunHilos;
+import chattcp.ServerConfig.HiloServidorChat;
+import chattcp.ServerConfig.ServidorDB;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
