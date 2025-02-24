@@ -229,6 +229,18 @@ class DBHandler extends Thread {
                     }
                     break;
                 }
+                case "VERIFICAR_PERTENENCIA_GRUPO": {
+                    // Formato: "VERIFICAR_PERTENENCIA_GRUPO;usuario;grupo"
+                    if (partes.length >= 3) {
+                        String usuario = partes[1];
+                        String grupo = partes[2];
+                        boolean pertenece = UsuariosDB.perteneceAlGrupo(usuario, grupo);
+                        respuesta = pertenece ? "OK" : "ERROR";
+                    } else {
+                        respuesta = "ERROR: Parámetros insuficientes";
+                    }
+                    break;
+                }
                 default: {
                     respuesta = "ERROR: Comando no reconocido";
                     break;

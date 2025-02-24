@@ -1114,7 +1114,7 @@
             }
             try {
                 // Verify user belongs to the group
-                if (!UsuariosDB.perteneceAlGrupo(nombreUsuario, grupo)) {
+                if (!verificarPertenenciaGrupoRemoto(nombreUsuario, grupo)) {
                     JOptionPane.showMessageDialog(this,
                             "No puedes acceder a este grupo porque no eres miembro.",
                             "Error",
@@ -1143,7 +1143,29 @@
                 e.printStackTrace();
             }
         }
+        // Método para verificar la pertenencia al grupo a través del servidor
+        private boolean verificarPertenenciaGrupoRemoto(String usuario, String grupo) {
+            try (Socket socket = new Socket(serverIP, 44446)) {
+                DataOutputStream salida = new DataOutputStream(socket.getOutputStream());
+                DataInputStream entrada = new DataInputStream(socket.getInputStream());
 
+                // Enviar comando de verificación
+                String comando = "VERIFICAR_PERTENENCIA_GRUPO;" + usuario + ";" + grupo;
+                salida.writeUTF(comando);
+
+                // Recibir respuesta
+                String respuesta = entrada.readUTF();
+                return "OK".equals(respuesta);
+
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(this,
+                        "Error al verificar la pertenencia al grupo",
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+                e.printStackTrace();
+                return false;
+            }
+        }
         // Método para abrir un chat con un contacto
         private void abrirChat(String contacto) {
             if (chatsIndividualesAbiertos.contains(contacto)) {
