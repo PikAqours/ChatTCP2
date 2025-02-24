@@ -76,7 +76,7 @@ public class ClienteGrupo extends JFrame implements Runnable {
         groupLabel.setForeground(PRIMARY_COLOR);
 
         // Añadir botón de configuración
-        btnConfig = new JButton(new ImageIcon(new ImageIcon("chatTCP/res/config_icon.png").getImage().getScaledInstance(32, 32, Image.SCALE_SMOOTH)));        btnConfig.setContentAreaFilled(false);
+        btnConfig = new JButton(new ImageIcon(new ImageIcon("chatTCP/res/config_icon_2.png").getImage().getScaledInstance(48, 48, Image.SCALE_SMOOTH)));        btnConfig.setContentAreaFilled(false);
         btnConfig.setBorderPainted(false);
         btnConfig.setFocusPainted(false);
         btnConfig.setCursor(new Cursor(Cursor.HAND_CURSOR));
