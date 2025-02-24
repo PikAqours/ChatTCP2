@@ -16,6 +16,7 @@ public class ClienteGrupo extends JFrame implements Runnable {
     private JTextField mensaje;
     private JButton btnEnviar;
     private JButton btnSalir;
+    private JButton btnConfig;
     private Socket socket;
     private DataInputStream fentrada;
     private DataOutputStream fsalida;
@@ -69,10 +70,24 @@ public class ClienteGrupo extends JFrame implements Runnable {
         // Panel superior con información del grupo
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setBackground(BG_COLOR);
+
         JLabel groupLabel = new JLabel("Grupo: " + grupo, SwingConstants.CENTER);
         groupLabel.setFont(TITLE_FONT);
         groupLabel.setForeground(PRIMARY_COLOR);
+
+        // Añadir botón de configuración
+        btnConfig = new JButton(new ImageIcon(new ImageIcon("chatTCP/res/config_icon.png").getImage().getScaledInstance(32, 32, Image.SCALE_SMOOTH)));        btnConfig.setContentAreaFilled(false);
+        btnConfig.setBorderPainted(false);
+        btnConfig.setFocusPainted(false);
+        btnConfig.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnConfig.addActionListener(e -> abrirConfiguracion());
+
+        JPanel topRightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        topRightPanel.setBackground(BG_COLOR);
+        topRightPanel.add(btnConfig);
+
         headerPanel.add(groupLabel, BorderLayout.CENTER);
+        headerPanel.add(topRightPanel, BorderLayout.EAST);
         headerPanel.setBorder(new EmptyBorder(0, 0, 10, 0));
 
         // Área de chat
@@ -151,6 +166,8 @@ public class ClienteGrupo extends JFrame implements Runnable {
         add(mainPanel);
         pack();
         setLocationRelativeTo(null);
+
+        // Añadir atajos de teclado
         InputMap inputMap = mainPanel.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
         ActionMap actionMap = mainPanel.getActionMap();
 
@@ -170,6 +187,7 @@ public class ClienteGrupo extends JFrame implements Runnable {
             }
         });
     }
+
     private JButton createStyledButton(String text, Color backgroundColor) {
         JButton button = new JButton(text);
         button.setFont(BUTTON_FONT);
@@ -196,6 +214,13 @@ public class ClienteGrupo extends JFrame implements Runnable {
         });
 
         return button;
+    }
+
+    private void abrirConfiguracion() {
+        JOptionPane.showMessageDialog(this,
+                "Configuración de chat de grupo",
+                "Configuración",
+                JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void loadGroupChatHistory() {

@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class GrupoMensajesDB {
-    private static final String URL = "jdbc:sqlite:C:\\DAM\\chatTCP\\chatTCP\\model\\ChatDB.db";
+    private static final String URL = "jdbc:sqlite:chatTCP/model/ChatDB.db";
 
     // Save a group message
     public static boolean saveGroupMessage(String fromUser, String groupName, String message) {
