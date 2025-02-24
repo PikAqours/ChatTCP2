@@ -227,9 +227,12 @@
             });
         }
         private void agregarShutdownHook() {
-            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                logout();
-            }));
+            try {
+                Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                    logout();
+                }));
+            }
+            catch (Exception e) {}
         }
 
         private void mostrarConfirmacionSalida() {
