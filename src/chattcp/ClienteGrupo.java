@@ -32,6 +32,7 @@ public class ClienteGrupo extends JFrame implements Runnable {
     private final Font TITLE_FONT = new Font("Segoe UI", Font.BOLD, 16);
     private final Font MESSAGE_FONT = new Font("Segoe UI", Font.PLAIN, 14);
     private final Font BUTTON_FONT = new Font("Segoe UI", Font.BOLD, 14);
+    private boolean isAdmin = false;
 
     public ClienteGrupo(Socket socket, String usuario, String grupo) {
         super("Chat de Grupo: " + grupo);
@@ -203,6 +204,31 @@ public class ClienteGrupo extends JFrame implements Runnable {
             }
         });
     }
+    private boolean checkAdminStatus() {
+        try {
+            // Create new socket for DB connection
+            Socket dbSocket = new Socket("localhost", 44446);
+            DataOutputStream dbOut = new DataOutputStream(dbSocket.getOutputStream());
+            DataInputStream dbIn = new DataInputStream(dbSocket.getInputStream());
+
+            // Send command
+            String comando = String.format("CHECK_ADMIN;%s;%s", grupo, usuario);
+            dbOut.writeUTF(comando);
+
+            // Read response
+
+            boolean isAdmin = dbIn.readBoolean();
+            System.out.println(isAdmin);
+
+            // Close DB connection
+            dbSocket.close();
+
+            return isAdmin;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 
     private JButton createStyledButton(String text, Color backgroundColor) {
         JButton button = new JButton(text);
@@ -233,10 +259,17 @@ public class ClienteGrupo extends JFrame implements Runnable {
     }
 
     private void abrirConfiguracion() {
-        SwingUtilities.invokeLater(() -> {
-            ConfiguracionGrupo configuracionGrupo = new ConfiguracionGrupo(socket, usuario, grupo);
-            configuracionGrupo.setVisible(true);
-        });
+        if (checkAdminStatus()) {
+            SwingUtilities.invokeLater(() -> {
+                ConfiguracionGrupo configuracionGrupo = new ConfiguracionGrupo(socket, usuario, grupo);
+                configuracionGrupo.setVisible(true);
+            });
+        } else {
+            JOptionPane.showMessageDialog(this,
+                    "No tienes permisos de administrador para configurar este grupo.",
+                    "Acceso Denegado",
+                    JOptionPane.WARNING_MESSAGE);
+        }
     }
 
     private void loadGroupChatHistory() {

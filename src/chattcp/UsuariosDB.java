@@ -282,5 +282,30 @@ public class UsuariosDB {
         }
         return messages;
     }
+    public static boolean isUserGroupAdmin(String nombreUsuario, String nombreGrupo) {
+        String query = """
+        SELECT gu.es_admin 
+        FROM grupo_usuario gu 
+        JOIN usuarios u ON gu.id_usuario = u.id 
+        JOIN grupos g ON gu.id_grupo = g.id 
+        WHERE u.nombre_usuario = ? AND g.nombre = ?
+        """;
+
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+
+            pstmt.setString(1, nombreUsuario);
+            pstmt.setString(2, nombreGrupo);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("es_admin") > 0;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
 
 }

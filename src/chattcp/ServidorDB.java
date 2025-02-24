@@ -138,6 +138,22 @@ class DBHandler extends Thread {
                     }
                     break;
                 }
+                case "CHECK_ADMIN": {
+                        // Formato: "CHECK_ADMIN;nombreGrupo;nombreUsuario"
+                   
+                        if (partes.length >= 3) {
+                            String nombreGrupo = partes[1];
+                            String nombreUsuario = partes[2];
+
+                            boolean isAdmin = UsuariosDB.isUserGroupAdmin(nombreUsuario, nombreGrupo);
+                            salida.writeBoolean(isAdmin);  // Using writeBoolean instead of writeUTF for boolean value
+                        }
+                        else {
+                            salida.writeBoolean(false);  // If parameters are insufficient, return false
+                        }
+                        break;
+
+                }
                 default: {
                     respuesta = "ERROR: Comando no reconocido";
                     break;
