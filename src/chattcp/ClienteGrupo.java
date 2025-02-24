@@ -76,11 +76,27 @@ public class ClienteGrupo extends JFrame implements Runnable {
         groupLabel.setForeground(PRIMARY_COLOR);
 
         // Añadir botón de configuración
-        btnConfig = new JButton(new ImageIcon(new ImageIcon("chatTCP/res/config_icon_2.png").getImage().getScaledInstance(48, 48, Image.SCALE_SMOOTH)));        btnConfig.setContentAreaFilled(false);
+        ImageIcon configIconNormal = new ImageIcon(new ImageIcon("chatTCP/res/config_icon_2.png").getImage().getScaledInstance(48, 48, Image.SCALE_SMOOTH));
+        ImageIcon configIconDark = new ImageIcon(new ImageIcon("chatTCP/res/config_icon_2_dark.png").getImage().getScaledInstance(48, 48, Image.SCALE_SMOOTH));
+
+        btnConfig = new JButton(configIconNormal);
+        btnConfig.setContentAreaFilled(false);
         btnConfig.setBorderPainted(false);
         btnConfig.setFocusPainted(false);
         btnConfig.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnConfig.addActionListener(e -> abrirConfiguracion());
+
+        btnConfig.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                btnConfig.setIcon(configIconDark);
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                btnConfig.setIcon(configIconNormal);
+            }
+        });
 
         JPanel topRightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         topRightPanel.setBackground(BG_COLOR);
@@ -217,10 +233,10 @@ public class ClienteGrupo extends JFrame implements Runnable {
     }
 
     private void abrirConfiguracion() {
-        JOptionPane.showMessageDialog(this,
-                "Configuración de chat de grupo",
-                "Configuración",
-                JOptionPane.INFORMATION_MESSAGE);
+        SwingUtilities.invokeLater(() -> {
+            ConfiguracionGrupo configuracionGrupo = new ConfiguracionGrupo(socket, usuario, grupo);
+            configuracionGrupo.setVisible(true);
+        });
     }
 
     private void loadGroupChatHistory() {
