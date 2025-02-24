@@ -34,6 +34,11 @@ public class ClienteGrupo extends JFrame implements Runnable {
     private final Font BUTTON_FONT = new Font("Segoe UI", Font.BOLD, 14);
     private boolean isAdmin = false;
 
+    private JPanel mainPanel;
+    private JPanel chatPanel;
+    private JPanel configPanel;
+    private ConfiguracionGrupo configuracionGrupo;
+
     public ClienteGrupo(Socket socket, String usuario, String grupo) {
         super("Chat de Grupo: " + grupo);
         this.socket = socket;
@@ -218,7 +223,7 @@ public class ClienteGrupo extends JFrame implements Runnable {
             // Read response
 
             boolean isAdmin = dbIn.readBoolean();
-            System.out.println(isAdmin);
+
 
             // Close DB connection
             dbSocket.close();

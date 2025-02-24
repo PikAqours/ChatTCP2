@@ -2,6 +2,7 @@ package chattcp;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class UsuariosDB {
@@ -307,5 +308,154 @@ public class UsuariosDB {
         }
         return false;
     }
+
+
+
+    public static List<String> obtenerUsuariosDisponiblesGrupo(String nombreGrupo) {
+        List<String> usuariosDisponibles = new ArrayList<>();
+        String query = """
+        SELECT u.nombre_usuario 
+        FROM usuarios u 
+        WHERE u.id NOT IN (
+            SELECT gu.id_usuario 
+            FROM grupo_usuario gu 
+            JOIN grupos g ON g.id = gu.id_grupo 
+            WHERE g.nombre = ?
+        )
+        """;
+
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+
+            pstmt.setString(1, nombreGrupo);
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                usuariosDisponibles.add(rs.getString("nombre_usuario"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return usuariosDisponibles;
+    }
+
+    public static boolean actualizarGrupo(String grupoActual, String nuevoNombre,
+                                          List<String> usuariosActuales,
+                                          List<String> usuariosEliminados) {
+        Connection conn = null;
+        try {
+            conn = connect();
+            conn.setAutoCommit(false);
+
+            // 1. First get the group ID using the CURRENT name
+            int groupId;
+            String getGroupId = "SELECT id FROM grupos WHERE nombre = ?";
+            try (PreparedStatement pstmt = conn.prepareStatement(getGroupId)) {
+                pstmt.setString(1, grupoActual);  // Use current name, not new name
+                ResultSet rs = pstmt.executeQuery();
+                if (!rs.next()) {
+                    conn.rollback();
+                    return false;
+                }
+                groupId = rs.getInt("id");
+            }
+
+            // 2. Update group name if it changed
+            if (!grupoActual.equals(nuevoNombre)) {
+                String updateGroupName = "UPDATE grupos SET nombre = ? WHERE id = ?";
+                try (PreparedStatement pstmt = conn.prepareStatement(updateGroupName)) {
+                    pstmt.setString(1, nuevoNombre);
+                    pstmt.setInt(2, groupId);     // Use ID instead of name for update
+                    pstmt.executeUpdate();
+                }
+            }
+
+            // 3. Remove specified users from group
+            if (!usuariosEliminados.isEmpty()) {
+                String deleteUsers = """
+                DELETE FROM grupo_usuario 
+                WHERE id_grupo = ? 
+                AND id_usuario IN (
+                    SELECT id FROM usuarios WHERE nombre_usuario IN (
+                    """ + String.join(",", Collections.nCopies(usuariosEliminados.size(), "?")) + "))";
+
+                try (PreparedStatement pstmt = conn.prepareStatement(deleteUsers)) {
+                    pstmt.setInt(1, groupId);
+                    for (int i = 0; i < usuariosEliminados.size(); i++) {
+                        pstmt.setString(i + 2, usuariosEliminados.get(i));
+                    }
+                    pstmt.executeUpdate();
+                }
+            }
+
+            // 4. Add new users that aren't in the group yet
+            if (!usuariosActuales.isEmpty()) {
+                String addUser = """
+                INSERT INTO grupo_usuario (id_grupo, id_usuario, es_admin) 
+                SELECT ?, u.id, 0 
+                FROM usuarios u 
+                WHERE u.nombre_usuario = ? 
+                AND NOT EXISTS (
+                    SELECT 1 FROM grupo_usuario 
+                    WHERE id_grupo = ? 
+                    AND id_usuario = u.id
+                )
+                """;
+                try (PreparedStatement pstmt = conn.prepareStatement(addUser)) {
+                    for (String usuario : usuariosActuales) {
+                        pstmt.setInt(1, groupId);
+                        pstmt.setString(2, usuario);
+                        pstmt.setInt(3, groupId);
+                        pstmt.executeUpdate();
+                    }
+                }
+            }
+
+            conn.commit();
+            return true;
+
+        } catch (SQLException e) {
+            try {
+                if (conn != null) conn.rollback();
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+            e.printStackTrace();
+            return false;
+        } finally {
+            try {
+                if (conn != null) {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public static boolean promoverAdmin(String nombreGrupo, String nombreUsuario) {
+        String query = """
+        UPDATE grupo_usuario 
+        SET es_admin = 1 
+        WHERE id_grupo = (SELECT id FROM grupos WHERE nombre = ?) 
+        AND id_usuario = (SELECT id FROM usuarios WHERE nombre_usuario = ?)
+        """;
+
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+
+            pstmt.setString(1, nombreGrupo);
+            pstmt.setString(2, nombreUsuario);
+
+            int rowsAffected = pstmt.executeUpdate();
+            return rowsAffected > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
 
 }

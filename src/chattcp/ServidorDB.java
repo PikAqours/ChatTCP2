@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class ServidorDB {
@@ -140,7 +141,7 @@ class DBHandler extends Thread {
                 }
                 case "CHECK_ADMIN": {
                         // Formato: "CHECK_ADMIN;nombreGrupo;nombreUsuario"
-                   
+
                         if (partes.length >= 3) {
                             String nombreGrupo = partes[1];
                             String nombreUsuario = partes[2];
@@ -153,6 +154,62 @@ class DBHandler extends Thread {
                         }
                         break;
 
+                }
+                case "OBTENER_USUARIOS_GRUPO": {
+                    // Format: OBTENER_USUARIOS_GRUPO;nombreGrupo
+                    if (partes.length >= 2) {
+                        String nombreGrupo = partes[1];
+                        List<String> usuarios = UsuariosDB.obtenerMiembrosGrupo(nombreGrupo);
+                        respuesta = String.join(",", usuarios);
+                    } else {
+                        respuesta = "ERROR";
+                    }
+                    break;
+                }
+
+                case "OBTENER_USUARIOS_DISPONIBLES_GRUPO": {
+                    // Format: OBTENER_USUARIOS_DISPONIBLES_GRUPO;nombreGrupo
+                    if (partes.length >= 2) {
+                        String nombreGrupo = partes[1];
+                        List<String> usuarios = UsuariosDB.obtenerUsuariosDisponiblesGrupo(nombreGrupo);
+                        respuesta = usuarios.isEmpty() ? "ERROR" : String.join(",", usuarios);
+                    } else {
+                        respuesta = "ERROR";
+                    }
+                    System.out.println(respuesta);
+                    salida.writeUTF(respuesta);
+                    break;
+                }
+
+                case "ACTUALIZAR_GRUPO": {
+                    // Format: ACTUALIZAR_GRUPO;nombreGrupoActual;nuevoNombre;usuarios_actuales;usuarios_eliminados
+                    if (partes.length >= 5) {
+                        String grupoActual = partes[1];
+                        String nuevoNombre = partes[2];
+                        String[] usuariosActuales = partes[3].split(",");
+                        String[] usuariosEliminados = partes[4].split(",");
+
+                        boolean exito = UsuariosDB.actualizarGrupo(grupoActual, nuevoNombre,
+                                Arrays.asList(usuariosActuales),
+                                Arrays.asList(usuariosEliminados));
+                        respuesta = exito ? "OK" : "ERROR";
+                    } else {
+                        respuesta = "ERROR";
+                    }
+                    break;
+                }
+
+                case "PROMOVER_ADMIN": {
+                    // Format: PROMOVER_ADMIN;nombreGrupo;nombreUsuario
+                    if (partes.length >= 3) {
+                        String nombreGrupo = partes[1];
+                        String nombreUsuario = partes[2];
+                        boolean exito = UsuariosDB.promoverAdmin(nombreGrupo, nombreUsuario);
+                        respuesta = exito ? "OK" : "ERROR";
+                    } else {
+                        respuesta = "ERROR";
+                    }
+                    break;
                 }
                 default: {
                     respuesta = "ERROR: Comando no reconocido";

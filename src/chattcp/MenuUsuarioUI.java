@@ -852,7 +852,7 @@
                 if (respuesta.equals("OK")) {
                     JOptionPane.showMessageDialog(this, "Grupo '" + nombreGrupo + "' creado con éxito.", "Éxito", JOptionPane.INFORMATION_MESSAGE);
                 } else {
-                    JOptionPane.showMessageDialog(this, "No se pudo crear el grupo: " + respuesta, "Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(this, "Ya existe un grupo con ese nombre. " + respuesta, "Error", JOptionPane.ERROR_MESSAGE);
                 }
             } catch (IOException e) {
                 e.printStackTrace();

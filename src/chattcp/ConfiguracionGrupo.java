@@ -6,6 +6,9 @@ import javax.swing.plaf.basic.BasicScrollBarUI;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
@@ -137,7 +140,7 @@ public class ConfiguracionGrupo extends JFrame {
         listaUsuarios.setFont(MESSAGE_FONT);
         listaUsuarios.setBackground(Color.WHITE);
         listaUsuarios.setForeground(TEXT_COLOR);
-        listaUsuarios.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        listaUsuarios.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 
         // Personalizar el renderizado de la lista
         listaUsuarios.setCellRenderer(new DefaultListCellRenderer() {
@@ -192,9 +195,9 @@ public class ConfiguracionGrupo extends JFrame {
     }
 
     private void addAgregarUsuarioSection(JPanel panel, GridBagConstraints gbc) {
-        JLabel lblAgregarUsuario = createLabel("Añadir Contacto:");
+        JLabel lblAgregarUsuario = createLabel("Contactos disponibles:");
 
-        JPanel addUserPanel = new JPanel(new BorderLayout(5, 0)); // Use 5-pixel gap to match main list
+        JPanel addUserPanel = new JPanel(new BorderLayout(5, 0));
         addUserPanel.setBackground(BG_COLOR);
 
         // Lista de usuarios disponibles
@@ -203,7 +206,7 @@ public class ConfiguracionGrupo extends JFrame {
         listaUsuariosDisponibles.setFont(MESSAGE_FONT);
         listaUsuariosDisponibles.setBackground(Color.WHITE);
         listaUsuariosDisponibles.setForeground(TEXT_COLOR);
-        listaUsuariosDisponibles.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        listaUsuariosDisponibles.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 
         // Personalizar el renderizado de la lista de usuarios disponibles
         listaUsuariosDisponibles.setCellRenderer(new DefaultListCellRenderer() {
@@ -231,7 +234,7 @@ public class ConfiguracionGrupo extends JFrame {
         JPanel buttonPanel = new JPanel(new GridBagLayout());
         buttonPanel.setBackground(BG_COLOR);
 
-        btnAgregarUsuario = createStyledButton("Añadir", PRIMARY_COLOR);
+        btnAgregarUsuario = createStyledButton("Añadir al grupo", PRIMARY_COLOR);
 
         // Centrar el botón verticalmente
         GridBagConstraints buttonConstraints = new GridBagConstraints();
@@ -371,59 +374,140 @@ public class ConfiguracionGrupo extends JFrame {
     }
 
     private void cargarUsuariosDelGrupo() {
-        // Simulación de usuarios del grupo
-        List<String> usuariosSimulados = new ArrayList<>();
-        usuariosSimulados.add("Usuario1");
-        usuariosSimulados.add("Usuario2");
-        usuariosSimulados.add("Usuario3");
-        usuariosSimulados.add("Usuario4");
-        usuariosSimulados.add("Usuario5");
+        try {
+            // Create DB connection
+            Socket dbSocket = new Socket("localhost", 44446);
+            Socket dbSocket2 = new Socket("localhost", 44446);
+            DataOutputStream dbOut = new DataOutputStream(dbSocket.getOutputStream());
+            DataOutputStream dbOut2 = new DataOutputStream(dbSocket2.getOutputStream());
+            DataInputStream dbIn = new DataInputStream(dbSocket.getInputStream());
+            DataInputStream dbIn2 = new DataInputStream(dbSocket2.getInputStream());
 
-        // Simulación de usuarios disponibles para añadir
-        List<String> usuariosDisponibles = new ArrayList<>();
-        usuariosDisponibles.add("Usuario6");
-        usuariosDisponibles.add("Usuario7");
-        usuariosDisponibles.add("Usuario8");
-        usuariosDisponibles.add("Usuario9");
-        usuariosDisponibles.add("Usuario10");
+            // Get group users
+            dbOut.writeUTF("OBTENER_USUARIOS_GRUPO;" + grupo);
+            String usuariosGrupo = dbIn.readUTF();
+            dbSocket.close();
 
-        SwingUtilities.invokeLater(() -> {
-            // Cargar usuarios del grupo
-            listModelUsuarios.clear();
-            usuariosSimulados.forEach(listModelUsuarios::addElement);
+            // Get available users
 
-            // Cargar usuarios disponibles
-            listModelUsuariosDisponibles.clear();
-            usuariosDisponibles.forEach(listModelUsuariosDisponibles::addElement);
-        });
+            dbOut2.writeUTF("OBTENER_USUARIOS_DISPONIBLES_GRUPO;" + grupo);
+            String usuariosDisponibles = dbIn2.readUTF();
+            dbSocket2.close();
+
+
+
+
+            // Update UI
+            SwingUtilities.invokeLater(() -> {
+                // Load group users
+                listModelUsuarios.clear();
+                if (!usuariosGrupo.equals("ERROR")) {
+                    String[] usuarios = usuariosGrupo.split(",");
+                    for (String usuario : usuarios) {
+                        if (!usuario.trim().isEmpty()) {
+                            listModelUsuarios.addElement(usuario);
+                        }
+                    }
+                }
+
+                // Load available users
+                listModelUsuariosDisponibles.clear();
+                if (!usuariosDisponibles.equals("ERROR")) {
+                    String[] usuarios = usuariosDisponibles.split(",");
+                    for (String usuario : usuarios) {
+                        if (!usuario.trim().isEmpty()) {
+                            listModelUsuariosDisponibles.addElement(usuario);
+                        }
+                    }
+                }
+            });
+        } catch (IOException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this,
+                    "Error al cargar los usuarios",
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
+        }
     }
     private void guardarConfiguracion() {
-        String nuevoNombreGrupo = txtNombreGrupo.getText();
-        System.out.println("Guardar configuración. Nuevo nombre de grupo: " + nuevoNombreGrupo);
-        dispose();
+        try {
+            Socket dbSocket = new Socket("localhost", 44446);
+            DataOutputStream dbOut = new DataOutputStream(dbSocket.getOutputStream());
+            DataInputStream dbIn = new DataInputStream(dbSocket.getInputStream());
+
+            // Collect all changes
+            String nuevoNombre = txtNombreGrupo.getText();
+
+            // Get current users in the list
+            List<String> usuariosActuales = new ArrayList<>();
+            for (int i = 0; i < listModelUsuarios.size(); i++) {
+                usuariosActuales.add(listModelUsuarios.getElementAt(i));
+            }
+
+            // Get users available (these were removed from the group)
+            List<String> usuariosEliminados = new ArrayList<>();
+            for (int i = 0; i < listModelUsuariosDisponibles.size(); i++) {
+                String usuario = listModelUsuariosDisponibles.getElementAt(i);
+                usuariosEliminados.add(usuario);
+            }
+
+            // Send update command with both lists
+            String comando = String.format("ACTUALIZAR_GRUPO;%s;%s;%s;%s",
+                    grupo,
+                    nuevoNombre,
+                    String.join(",", usuariosActuales),
+                    String.join(",", usuariosEliminados));
+
+            dbOut.writeUTF(comando);
+            String respuesta = dbIn.readUTF();
+
+            dbSocket.close();
+
+            if (respuesta.equals("OK")) {
+                JOptionPane.showMessageDialog(this,
+                        "Configuración guardada correctamente",
+                        "Éxito",
+                        JOptionPane.INFORMATION_MESSAGE);
+                dispose();
+            } else {
+                JOptionPane.showMessageDialog(this,
+                        "El nombre de grupo "+ nuevoNombre + " ya existe" ,
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this,
+                    "Error al guardar la configuración",
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
+        }
     }
     private void agregarUsuario() {
-        String usuarioSeleccionado = listaUsuariosDisponibles.getSelectedValue();
-        if (usuarioSeleccionado != null) {
-            System.out.println("Agregar usuario: " + usuarioSeleccionado);
-            listModelUsuarios.addElement(usuarioSeleccionado);
-            listModelUsuariosDisponibles.removeElement(usuarioSeleccionado);
+        List<String> usuariosSeleccionados = listaUsuariosDisponibles.getSelectedValuesList();
+        if (!usuariosSeleccionados.isEmpty()) {
+            for (String usuario : usuariosSeleccionados) {
+                listModelUsuarios.addElement(usuario);
+                listModelUsuariosDisponibles.removeElement(usuario);
+            }
         } else {
             JOptionPane.showMessageDialog(this,
-                    "Selecciona un usuario para añadir.",
+                    "Selecciona uno o más usuarios para añadir.",
                     "Error",
                     JOptionPane.WARNING_MESSAGE);
         }
     }
 
     private void eliminarUsuarioSeleccionado() {
-        String usuarioSeleccionado = listaUsuarios.getSelectedValue();
-        if (usuarioSeleccionado != null) {
-            System.out.println("Eliminar usuario: " + usuarioSeleccionado);
-            listModelUsuarios.removeElement(usuarioSeleccionado);
+        List<String> usuariosSeleccionados = listaUsuarios.getSelectedValuesList();
+        if (!usuariosSeleccionados.isEmpty()) {
+            for (String usuario : usuariosSeleccionados) {
+                listModelUsuarios.removeElement(usuario);
+                listModelUsuariosDisponibles.addElement(usuario);
+            }
         } else {
             JOptionPane.showMessageDialog(this,
-                    "Selecciona un usuario para eliminar.",
+                    "Selecciona uno o más usuarios para eliminar.",
                     "Error",
                     JOptionPane.WARNING_MESSAGE);
         }
@@ -432,10 +516,37 @@ public class ConfiguracionGrupo extends JFrame {
     private void promoverUsuarioAdmin() {
         String usuarioSeleccionado = listaUsuarios.getSelectedValue();
         if (usuarioSeleccionado != null) {
-            System.out.println("Promover a administrador: " + usuarioSeleccionado);
+            try {
+                Socket dbSocket = new Socket("localhost", 44446);
+                DataOutputStream dbOut = new DataOutputStream(dbSocket.getOutputStream());
+                DataInputStream dbIn = new DataInputStream(dbSocket.getInputStream());
+
+                dbOut.writeUTF("PROMOVER_ADMIN;" + grupo + ";" + usuarioSeleccionado);
+                String respuesta = dbIn.readUTF();
+
+                dbSocket.close();
+
+                if (respuesta.equals("OK")) {
+                    JOptionPane.showMessageDialog(this,
+                            "Usuario promovido a administrador correctamente",
+                            "Éxito",
+                            JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(this,
+                            "Error al promover usuario",
+                            "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(this,
+                        "Error al promover usuario",
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
         } else {
             JOptionPane.showMessageDialog(this,
-                    "Selecciona un usuario para promover a administrador.",
+                    "Selecciona un usuario para promover a administrador",
                     "Error",
                     JOptionPane.WARNING_MESSAGE);
         }
