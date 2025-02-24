@@ -18,6 +18,7 @@ public class Cliente extends javax.swing.JFrame implements Runnable {
     private DataInputStream fentrada;
     private DataOutputStream fsalida;
     private String serverIP;
+    private Notificacion notificacion;
     private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     private long lastMessageTimestamp = 0;
     private final Color PRIMARY_COLOR = new Color(75, 0, 130);      // Índigo
@@ -37,6 +38,11 @@ public class Cliente extends javax.swing.JFrame implements Runnable {
         this.socket = s;
         this.serverIP = s.getInetAddress().getHostAddress();
 
+        try {
+            this.notificacion = Notificacion.getInstance();
+        } catch (Exception e) {
+            System.out.println("No se pudo inicializar el sistema de notificaciones");
+        }
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         addWindowListener(new WindowAdapter() {
             @Override
@@ -330,25 +336,30 @@ public class Cliente extends javax.swing.JFrame implements Runnable {
                                 content);
                         appendMessage(formattedMessage, true);
 
-                        // Request chat history update after receiving a message
-                        loadChatHistory();
+                        // Mostrar notificación si la ventana no está activa y el mensaje es del otro usuario
+                        if (!this.isFocused() && notificacion != null && !sender.equals(nombre)) {
+                            notificacion.mostrarNotificacionPrivada(sender, content);
+                        }
                     }
                 } else if (texto.startsWith("/actualizar ")) {
-                    // Handle update notification
-                    loadChatHistory();  // Directly load chat history instead of sending another request
+                    loadChatHistory();  // Cargar historial solo cuando se recibe una actualización
                 } else if (texto.equals("HISTORY_START")) {
                     SwingUtilities.invokeLater(() -> {
                         textArea1.setText(""); // Clear the chat area before loading history
                     });
                     while (!(texto = fentrada.readUTF()).equals("HISTORY_END")) {
                         if (texto.startsWith("HIST:")) {
-                            if (texto.startsWith("HIST:")) {
-                                appendMessage(texto.substring(5), false); // Pass false for history messages
-                            }
+                            appendMessage(texto.substring(5), false); // Pass false for history messages
                         }
                     }
                 } else if (texto.equals("*")) {
                     repetir = false;
+                    if (notificacion != null) {
+                        notificacion.mostrarNotificacionSistema(
+                                "Chat finalizado",
+                                "El usuario " + destinatario + " ha cerrado la conversación"
+                        );
+                    }
                     JOptionPane.showMessageDialog(this,
                             "El otro usuario ha cerrado la conversación",
                             "Chat finalizado",
@@ -358,6 +369,12 @@ public class Cliente extends javax.swing.JFrame implements Runnable {
                 }
             } catch(IOException e) {
                 if (repetir) {
+                    if (notificacion != null) {
+                        notificacion.mostrarNotificacionSistema(
+                                "Error de conexión",
+                                "Se ha perdido la conexión con el servidor"
+                        );
+                    }
                     JOptionPane.showMessageDialog(this,
                             "Conexión con el servidor perdida",
                             "Error",

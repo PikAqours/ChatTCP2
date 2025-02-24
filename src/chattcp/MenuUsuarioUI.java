@@ -13,6 +13,7 @@
     import java.net.Socket;
     import java.util.ArrayList;
     import java.util.List;
+
     /**
      * Menú principal de la aplicación de chat
      */
@@ -32,10 +33,77 @@
         private List<String> chatsIndividualesAbiertos = new ArrayList<>();
         private List<String> chatsGrupalesAbiertos = new ArrayList<>();
 
+        private Socket notificationSocket;
+        private Thread notificationThread;
+        private Notificacion notificacion;
+
         public MenuUsuarioUI(String nombreUsuario, String serverIP) {
             this.nombreUsuario = nombreUsuario;
             this.serverIP = serverIP;
+
+            try {
+                this.notificacion = Notificacion.getInstance();
+            } catch (Exception e) {
+                System.out.println("No se pudo inicializar el sistema de notificaciones");
+            }
+
+            // Inicializar el socket de notificaciones
+            initNotificationSystem();
+
             inicializarUI();
+
+
+
+        }
+
+        private void initNotificationSystem() {
+            try {
+                notificationSocket = new Socket(serverIP, 44444);
+                DataOutputStream salida = new DataOutputStream(notificationSocket.getOutputStream());
+                salida.writeUTF("NOTIFY;" + nombreUsuario);  // Identificador especial para el servidor
+
+                // Iniciar thread de escucha de notificaciones
+                notificationThread = new Thread(() -> {
+                    try {
+                        DataInputStream entrada = new DataInputStream(notificationSocket.getInputStream());
+                        while (true) {
+                            String mensaje = entrada.readUTF();
+                            if (mensaje.startsWith("/privado ")) {
+                                String[] parts = mensaje.split(" ", 3);
+                                if (parts.length >= 3) {
+                                    String sender = parts[1];
+                                    String content = parts[2];
+
+                                    // Solo mostrar notificación si no hay un chat abierto con este usuario
+                                    if (!chatsIndividualesAbiertos.contains(sender)) {
+                                        notificacion.mostrarNotificacionPrivada(sender, content);
+                                    }
+                                }
+                            } else if (mensaje.startsWith("/grupo ")) {
+                                String[] parts = mensaje.split(" ", 3);
+                                if (parts.length >= 3) {
+                                    String sender = parts[1];
+                                    String grupo = parts[2].split(":")[0];
+                                    String content = parts[2].split(":", 2)[1];
+
+                                    // Solo mostrar notificación si no hay un chat de grupo abierto
+                                    if (!chatsGrupalesAbiertos.contains(grupo)) {
+                                        notificacion.mostrarNotificacionGrupo(sender, grupo, content);
+                                    }
+                                }
+                            }
+                        }
+                    } catch (IOException e) {
+                        if (!notificationSocket.isClosed()) {
+                            System.out.println("Error en el sistema de notificaciones: " + e.getMessage());
+                        }
+                    }
+                });
+                notificationThread.start();
+
+            } catch (IOException e) {
+                System.out.println("No se pudo iniciar el sistema de notificaciones: " + e.getMessage());
+            }
         }
 
 
@@ -285,6 +353,13 @@
                 salida.writeUTF("LOGOUT;" + nombreUsuario);
                 String response = entrada.readUTF();
                 System.out.println("Logout response: " + response);
+
+                if (notificationSocket != null && !notificationSocket.isClosed()) {
+                    notificationSocket.close();
+                }
+                if (notificationThread != null) {
+                    notificationThread.interrupt();
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             }
