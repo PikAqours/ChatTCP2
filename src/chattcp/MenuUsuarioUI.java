@@ -28,6 +28,9 @@
         private final Color TEXT_COLOR = new Color(50, 50, 50);         // Texto oscuro
         private final Font TITLE_FONT = new Font("Segoe UI", Font.BOLD, 24);
         private final Font BUTTON_FONT = new Font("Segoe UI", Font.BOLD, 14);
+        // En la clase MenuUsuarioUI
+        private List<String> chatsIndividualesAbiertos = new ArrayList<>();
+        private List<String> chatsGrupalesAbiertos = new ArrayList<>();
 
         public MenuUsuarioUI(String nombreUsuario, String serverIP) {
             this.nombreUsuario = nombreUsuario;
@@ -1024,6 +1027,13 @@
 
 
         private void abrirChatGrupo(String grupo) {
+            if (chatsGrupalesAbiertos.contains(grupo)) {
+                JOptionPane.showMessageDialog(this,
+                        "Ya tienes abierto el chat del grupo " + grupo,
+                        "Chat ya abierto",
+                        JOptionPane.WARNING_MESSAGE);
+                return;
+            }
             try {
                 // Verify user belongs to the group
                 if (!UsuariosDB.perteneceAlGrupo(nombreUsuario, grupo)) {
@@ -1038,6 +1048,15 @@
                 ClienteGrupo cliente = new ClienteGrupo(socket, nombreUsuario, grupo);
                 cliente.setBounds(0, 0, 540, 400);
                 cliente.setVisible(true);
+                chatsGrupalesAbiertos.add(grupo);
+
+                cliente.addWindowListener(new WindowAdapter() {
+                    @Override
+                    public void windowClosed(WindowEvent e) {
+                        chatsGrupalesAbiertos.remove(grupo);
+                    }
+                });
+
             } catch (IOException e) {
                 JOptionPane.showMessageDialog(this,
                         "No se pudo conectar al servidor de chat",
@@ -1049,6 +1068,13 @@
 
         // Método para abrir un chat con un contacto
         private void abrirChat(String contacto) {
+            if (chatsIndividualesAbiertos.contains(contacto)) {
+                JOptionPane.showMessageDialog(this,
+                        "Ya tienes un chat abierto con " + contacto,
+                        "Chat ya abierto",
+                        JOptionPane.WARNING_MESSAGE);
+                return;
+            }
             try {
                 // First verify they are contacts through the server
                 boolean sonContactos = verificarContactoRemoto(contacto);
@@ -1065,6 +1091,14 @@
                 Cliente cliente = new Cliente(socket, nombreUsuario, contacto);
                 cliente.setBounds(0, 0, 540, 400);
                 cliente.setVisible(true);
+                chatsIndividualesAbiertos.add(contacto);
+
+                cliente.addWindowListener(new WindowAdapter() {
+                    @Override
+                    public void windowClosed(WindowEvent e) {
+                        chatsIndividualesAbiertos.remove(contacto);
+                    }
+                });
             } catch (IOException e) {
                 JOptionPane.showMessageDialog(this,
                         "No se pudo conectar al servidor de chat",

@@ -123,9 +123,11 @@ public class UsuariosDB {
     }
     public static boolean crearGrupo(String usuarioActual, String nuevoGrupo, List<String> contactosSeleccionados) {
         String sqlInsertGrupo = "INSERT INTO grupos (nombre) VALUES (?)";
-        String sqlInsertGrupoUsuario = "INSERT INTO grupo_usuario (id_grupo, id_usuario) VALUES (?, (SELECT id FROM usuarios WHERE nombre_usuario = ?))";
+        String sqlInsertGrupoUsuario = "INSERT INTO grupo_usuario (id_grupo, id_usuario, es_admin) VALUES (?, (SELECT id FROM usuarios WHERE nombre_usuario = ?), ?)";
 
-        try (Connection conn = connect()) {
+        Connection conn = null;
+        try {
+            conn = connect();
             conn.setAutoCommit(false); // Para manejar la transacción
 
             // 1. Insertar el grupo y obtener su ID
@@ -143,18 +145,20 @@ public class UsuariosDB {
                 }
             }
 
-            // 2. Insertar al usuario actual en grupo_usuario
+            // 2. Insertar al usuario actual en grupo_usuario como administrador (es_admin = 1)
             try (PreparedStatement pstmt2 = conn.prepareStatement(sqlInsertGrupoUsuario)) {
                 pstmt2.setInt(1, idGrupo);
                 pstmt2.setString(2, usuarioActual);
+                pstmt2.setInt(3, 1); // Establecer como administrador
                 pstmt2.executeUpdate();
             }
 
-            // 3. Insertar todos los contactos seleccionados en grupo_usuario
+            // 3. Insertar todos los contactos seleccionados en grupo_usuario como usuarios normales (es_admin = 0)
             try (PreparedStatement pstmt3 = conn.prepareStatement(sqlInsertGrupoUsuario)) {
                 for (String contacto : contactosSeleccionados) {
                     pstmt3.setInt(1, idGrupo);
                     pstmt3.setString(2, contacto);
+                    pstmt3.setInt(3, 0); // Usuario normal
                     pstmt3.executeUpdate();
                 }
             }
@@ -163,7 +167,22 @@ public class UsuariosDB {
             return true;
         } catch (SQLException e) {
             System.out.println("Error al crear el grupo: " + e.getMessage());
+            if (conn != null) {
+                try {
+                    conn.rollback(); // Deshacer la transacción en caso de error
+                } catch (SQLException ex) {
+                    System.out.println("Error al hacer rollback: " + ex.getMessage());
+                }
+            }
             return false;
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    System.out.println("Error al cerrar la conexión: " + e.getMessage());
+                }
+            }
         }
     }
     public static List obtenerGrupos(String usuarioActual) {
