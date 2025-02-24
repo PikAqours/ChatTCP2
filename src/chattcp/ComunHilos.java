@@ -14,6 +14,7 @@ public class ComunHilos {
     private final List<Socket> conexiones = new ArrayList<>(); // Lista de sockets conectados
     private final Map<String, Socket> usuariosConectados = new HashMap<>();
     private final Map<String, List<String>> grupos = new HashMap<>();
+    private HashMap<String, Socket> notificationSockets = new HashMap<>();
 
     public ComunHilos(int maximo) {
         this.maximo = maximo;
@@ -31,6 +32,17 @@ public class ComunHilos {
             return true;
         }
         return false;
+    }
+    public synchronized void agregarSocketNotificacion(String usuario, Socket socket) {
+        notificationSockets.put(usuario, socket);
+    }
+
+    public synchronized void eliminarSocketNotificacion(String usuario) {
+        notificationSockets.remove(usuario);
+    }
+
+    public synchronized Socket getSocketNotificacion(String usuario) {
+        return notificationSockets.get(usuario);
     }
 
     // Eliminar usuario del mapa y de la lista de conexiones

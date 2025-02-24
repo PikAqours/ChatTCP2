@@ -12,6 +12,7 @@ public class HiloServidorChat extends Thread {
     Socket socket = null;
     ComunHilos comun;
     private String usuarioActual;
+    private boolean isNotificationSocket = false;
 
     public HiloServidorChat(Socket s, ComunHilos comun) {
         this.socket = s;
@@ -19,7 +20,7 @@ public class HiloServidorChat extends Thread {
 
         try {
             fentrada = new DataInputStream(socket.getInputStream());
-        } catch(IOException e) {
+        } catch (IOException e) {
             System.out.println("ERROR DE E/S");
             e.printStackTrace();
         }
@@ -28,21 +29,33 @@ public class HiloServidorChat extends Thread {
     private void enviarMensajePrivado(String destinatario, String contenido) {
         // Save message to database
         if (MensajesDB.saveMessage(usuarioActual, destinatario, contenido)) {
-            // If message was saved successfully, send to online user if they're connected
+            // Si el mensaje se guardó correctamente, enviar al usuario y su socket de notificaciones
             Socket socketDestino = comun.getSocketUsuario(destinatario);
+            Socket socketNotificacion = comun.getSocketNotificacion(destinatario);
+
+            // Enviar al socket de chat si está disponible
             if (socketDestino != null && !socketDestino.isClosed()) {
                 try {
                     DataOutputStream fsalida = new DataOutputStream(socketDestino.getOutputStream());
-                    // Send the actual message
                     fsalida.writeUTF("/privado " + usuarioActual + " " + contenido);
-                    // Send update notification
                     fsalida.writeUTF("/actualizar " + usuarioActual);
                 } catch (IOException e) {
                     System.out.println("Error enviando mensaje a " + destinatario);
                 }
             }
+
+            // Enviar al socket de notificaciones si está disponible
+            if (socketNotificacion != null && !socketNotificacion.isClosed()) {
+                try {
+                    DataOutputStream fsalidaNotif = new DataOutputStream(socketNotificacion.getOutputStream());
+                    fsalidaNotif.writeUTF("/privado " + usuarioActual + " " + contenido);
+                } catch (IOException e) {
+                    System.out.println("Error enviando notificación a " + destinatario);
+                }
+            }
         }
     }
+
     private void notificarCambioNombreGrupo(String grupoAntiguo, String grupoNuevo) {
         List<String> miembros = UsuariosDB.obtenerMiembrosGrupo(grupoNuevo);
         for (String miembro : miembros) {
@@ -72,26 +85,37 @@ public class HiloServidorChat extends Thread {
             System.out.println("Error enviando historial a " + usuarioActual);
         }
     }
+
     private void enviarMensajeGrupo(String grupo, String contenido) {
-        // Save message to database
         if (MensajesDB.saveGroupMessage(usuarioActual, grupo, contenido)) {
-            // If message was saved successfully, send to all online group members
             List<String> miembros = UsuariosDB.obtenerMiembrosGrupo(grupo);
             for (String miembro : miembros) {
                 Socket socketDestino = comun.getSocketUsuario(miembro);
+                Socket socketNotificacion = comun.getSocketNotificacion(miembro);
+
+                // Enviar al socket de chat
                 if (socketDestino != null && !socketDestino.isClosed()) {
                     try {
                         DataOutputStream fsalida = new DataOutputStream(socketDestino.getOutputStream());
-                        // Send the actual message
-                        fsalida.writeUTF("/grupo " + usuarioActual + " " + contenido);
-                        // Send update notification
+                        fsalida.writeUTF("/grupo " + usuarioActual + " " + grupo + ": " + contenido);
                         fsalida.writeUTF("/actualizar_grupo " + grupo);
                     } catch (IOException e) {
                         System.out.println("Error enviando mensaje a " + miembro);
                     }
                 }
+
+                // Enviar notificación solo a los demás miembros
+                if (!miembro.equals(usuarioActual) && socketNotificacion != null && !socketNotificacion.isClosed()) {
+                    try {
+                        DataOutputStream fsalidaNotif = new DataOutputStream(socketNotificacion.getOutputStream());
+                        fsalidaNotif.writeUTF("/grupo " + usuarioActual + " " + grupo + ": " + contenido);
+                    } catch (IOException e) {
+                        System.out.println("Error enviando notificación a " + miembro);
+                    }
+                }
             }
         }
+
     }
 
     @Override
@@ -99,6 +123,22 @@ public class HiloServidorChat extends Thread {
         try {
             this.usuarioActual = fentrada.readUTF();
 
+
+            if (usuarioActual.startsWith("NOTIFY;")) {
+                this.usuarioActual = usuarioActual.substring(7); // Eliminar el prefijo "NOTIFY;"
+                this.isNotificationSocket = true;
+                comun.agregarSocketNotificacion(this.usuarioActual, socket);
+
+                // Mantener la conexión abierta para notificaciones
+                try {
+                    while (true) {
+                        Thread.sleep(1000); // Evitar consumo excesivo de CPU
+                    }
+                }
+                catch (InterruptedException e) {
+                    System.out.println("Thread interrumpido " + usuarioActual);
+                }
+            }
             // Si es un comando del servidor, procesarlo inmediatamente
             if ("SERVER_COMMAND".equals(usuarioActual)) {
                 String comando = fentrada.readUTF();
@@ -172,8 +212,7 @@ public class HiloServidorChat extends Thread {
                     String contacto = mensaje.split(" ", 2)[1];
                     if (UsuariosDB.sonContactos(usuarioActual, contacto)) {
                         enviarHistorialChat(contacto);
-                    }
-                    else if (mensaje.startsWith("/notificar_cambio_grupo ")) {
+                    } else if (mensaje.startsWith("/notificar_cambio_grupo ")) {
                         // Nuevo caso para manejar la notificación de cambio de nombre
                         String[] partes = mensaje.split(" ", 3);
                         if (partes.length >= 3) {
@@ -181,8 +220,7 @@ public class HiloServidorChat extends Thread {
                             String grupoNuevo = partes[2];
                             notificarCambioNombreGrupo(grupoAntiguo, grupoNuevo);
                         }
-                    }
-                    else if (mensaje.startsWith("/cerrar_chat_grupo ")) {
+                    } else if (mensaje.startsWith("/cerrar_chat_grupo ")) {
                         String grupoCerrar = mensaje.split(" ", 2)[1];
                         List<String> miembros = UsuariosDB.obtenerMiembrosGrupo(grupoCerrar);
                         for (String miembro : miembros) {
@@ -202,13 +240,17 @@ public class HiloServidorChat extends Thread {
             }
         } catch (IOException e) {
             if (usuarioActual != null) {
-                comun.eliminarUsuario(usuarioActual);
-            }
-            try {
-                if (socket != null && !socket.isClosed()) {
-                    socket.close();
+                if (isNotificationSocket) {
+                    comun.eliminarSocketNotificacion(usuarioActual);
+                } else {
+                    comun.eliminarUsuario(usuarioActual);
                 }
-            } catch (IOException ignored) {
+                try {
+                    if (socket != null && !socket.isClosed()) {
+                        socket.close();
+                    }
+                } catch (IOException ignored) {
+                }
             }
         }
     }
