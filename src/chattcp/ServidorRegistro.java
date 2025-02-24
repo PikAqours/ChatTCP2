@@ -58,7 +58,19 @@ class RegistroHandler extends Thread {
                 } else {
                     salida.writeUTF("ERROR: Formato incorrecto");
                 }
-            } else if (mensaje.startsWith("LOGIN;")) {
+            }
+            else if (mensaje.startsWith("VERIFICAR_ESTADO;")) {
+                // Verificar estado del usuario
+                String[] partes = mensaje.split(";");
+                if (partes.length == 2) {
+                    String username = partes[1];
+                    boolean isActive = UsuariosActivos.isUserActive(username);
+                    salida.writeUTF(isActive ? "ONLINE" : "OFFLINE");
+                } else {
+                    salida.writeUTF("ERROR: Formato incorrecto");
+                }
+            }
+            else if (mensaje.startsWith("LOGIN;")) {
                 // Procesar inicio de sesión
                 String[] partes = mensaje.split(";");
                 if (partes.length == 3) {
@@ -66,7 +78,7 @@ class RegistroHandler extends Thread {
                     String password = partes[2];
 
                     // First check if user is already active
-                    if (ActiveUsers.isUserActive(username)) {
+                    if (UsuariosActivos.isUserActive(username)) {
                         salida.writeUTF("ERROR: Usuario ya está conectado");
                         return;
                     }
@@ -75,12 +87,12 @@ class RegistroHandler extends Thread {
                     boolean valid = UsuariosDB.validarUsuario(username, password);
                     if (valid) {
                         // Try to set user as active
-                        if (ActiveUsers.setUserActive(username)) {
+                        if (UsuariosActivos.setUserActive(username)) {
                             salida.writeUTF("OK");
 
                             // Add shutdown hook to ensure user is marked as inactive when connection is lost
                             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                                ActiveUsers.setUserInactive(username);
+                                UsuariosActivos.setUserInactive(username);
                             }));
                         } else {
                             salida.writeUTF("ERROR: Usuario ya está conectado");
@@ -96,7 +108,7 @@ class RegistroHandler extends Thread {
                 String[] partes = mensaje.split(";");
                 if (partes.length == 2) {
                     String username = partes[1];
-                    ActiveUsers.setUserInactive(username);
+                    UsuariosActivos.setUserInactive(username);
                     salida.writeUTF("OK");
                 } else {
                     salida.writeUTF("ERROR: Formato incorrecto");

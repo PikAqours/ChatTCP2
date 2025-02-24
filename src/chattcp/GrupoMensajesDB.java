@@ -35,8 +35,8 @@ public class GrupoMensajesDB {
     }
 
     // Get chat history for a group
-    public static List<ChatMessage> getGroupChatHistory(String groupName) {
-        List<ChatMessage> messages = new ArrayList<>();
+    public static List<MensajesChat> getGroupChatHistory(String groupName) {
+        List<MensajesChat> messages = new ArrayList<>();
         String sql = """
             SELECT m.*, 
                    u.nombre_usuario as sender_name,
@@ -60,7 +60,7 @@ public class GrupoMensajesDB {
                 String mensaje = rs.getString("mensaje");
                 Timestamp fecha = rs.getTimestamp("fecha");
 
-                messages.add(new ChatMessage(senderName, mensaje, fecha));
+                messages.add(new MensajesChat(senderName, mensaje, fecha));
             }
         } catch (SQLException e) {
             System.out.println("Error getting group chat history: " + e.getMessage());

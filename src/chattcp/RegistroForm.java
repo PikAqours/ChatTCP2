@@ -105,6 +105,19 @@ public class RegistroForm extends JFrame {
 
         // Borde decorativo
         getRootPane().setBorder(BorderFactory.createMatteBorder(2, 2, 2, 2, PRIMARY_COLOR));
+        //Atajos
+        InputMap inputMap = rootPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+
+        ActionMap actionMap = rootPane.getActionMap();
+
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "register");
+        actionMap.put("register", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // Simula el clic en el botón "Agregar"
+                registerButton.doClick();
+            }
+        });
     }
 
     /**

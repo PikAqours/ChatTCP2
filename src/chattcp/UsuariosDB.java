@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class UsuariosDB {
-    private static final String URL = "jdbc:sqlite:C:\\DAM\\chatTCP\\chatTCP\\model\\ChatDB.db";
+    private static final String URL = "jdbc:sqlite:chatTCP/model/ChatDB.db";
 
     // Inicializa la conexión a la base de datos
     private static Connection connect() {
@@ -244,8 +244,8 @@ public class UsuariosDB {
         }
         return miembros;
     }
-    public static List<ChatMessage> getChatHistory(String usuario1, String usuario2) {
-        List<ChatMessage> messages = new ArrayList<>();
+    public static List<MensajesChat> getChatHistory(String usuario1, String usuario2) {
+        List<MensajesChat> messages = new ArrayList<>();
         String sql = """
         SELECT m.*, 
                u1.nombre_usuario as sender_name,
@@ -274,7 +274,7 @@ public class UsuariosDB {
                 String senderName = rs.getString("sender_name");
                 String message = rs.getString("mensaje");
                 Timestamp timestamp = rs.getTimestamp("fecha");
-                messages.add(new ChatMessage(senderName, message, timestamp));
+                messages.add(new MensajesChat(senderName, message, timestamp));
             }
         } catch (SQLException e) {
             System.out.println("Error getting chat history: " + e.getMessage());

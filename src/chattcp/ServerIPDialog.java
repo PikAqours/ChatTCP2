@@ -3,6 +3,8 @@ package chattcp;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
@@ -97,6 +99,19 @@ public class ServerIPDialog extends JDialog {
 
         // Agrega el borde decorativo
         getRootPane().setBorder(BorderFactory.createMatteBorder(2, 2, 2, 2, PRIMARY_COLOR));
+
+        InputMap inputMap = rootPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+
+        ActionMap actionMap = rootPane.getActionMap();
+
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "conectar");
+        actionMap.put("conectar", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // Simula el clic en el botón "Agregar"
+                connectButton.doClick();
+            }
+        });
     }
 
     /**

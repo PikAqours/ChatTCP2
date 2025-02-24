@@ -128,15 +128,15 @@ class DBHandler extends Thread {
                         String usuario1 = partes[1];
                         String usuario2 = partes[2];
 
-                        List<ChatMessage> history = UsuariosDB.getChatHistory(usuario1, usuario2);
+                        List<MensajesChat> history = UsuariosDB.getChatHistory(usuario1, usuario2);
 
                         salida.writeUTF("HISTORY_START");
-                        for (ChatMessage msg : history) {
+                        for (MensajesChat msg : history) {
                             salida.writeUTF(msg.toString());
                         }
                         salida.writeUTF("HISTORY_END");
                     }
-                    break; // FALTABA ESTE BREAK
+                    break;
                 }
                 default: {
                     respuesta = "ERROR: Comando no reconocido";

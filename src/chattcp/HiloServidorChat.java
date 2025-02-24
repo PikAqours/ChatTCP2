@@ -46,11 +46,11 @@ public class HiloServidorChat extends Thread {
 
     private void enviarHistorialChat(String otroUsuario) {
         try {
-            List<ChatMessage> historial = MensajesDB.getChatHistory(usuarioActual, otroUsuario);
+            List<MensajesChat> historial = MensajesDB.getChatHistory(usuarioActual, otroUsuario);
             DataOutputStream fsalida = new DataOutputStream(socket.getOutputStream());
 
             fsalida.writeUTF("HISTORY_START");
-            for (ChatMessage msg : historial) {
+            for (MensajesChat msg : historial) {
                 fsalida.writeUTF("HIST:" + msg.toString());
             }
             fsalida.writeUTF("HISTORY_END");

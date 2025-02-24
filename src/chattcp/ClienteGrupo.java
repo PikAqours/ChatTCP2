@@ -4,10 +4,7 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.plaf.basic.BasicScrollBarUI;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
+import java.awt.event.*;
 import java.io.*;
 import java.net.Socket;
 import java.sql.Timestamp;
@@ -154,6 +151,24 @@ public class ClienteGrupo extends JFrame implements Runnable {
         add(mainPanel);
         pack();
         setLocationRelativeTo(null);
+        InputMap inputMap = mainPanel.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+        ActionMap actionMap = mainPanel.getActionMap();
+
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "enviar");
+        actionMap.put("enviar", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                btnEnviarActionPerformed(e);
+            }
+        });
+
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "salir");
+        actionMap.put("salir", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                btnSalirActionPerformed(e);
+            }
+        });
     }
     private JButton createStyledButton(String text, Color backgroundColor) {
         JButton button = new JButton(text);
@@ -184,10 +199,10 @@ public class ClienteGrupo extends JFrame implements Runnable {
     }
 
     private void loadGroupChatHistory() {
-        List<ChatMessage> historial = GrupoMensajesDB.getGroupChatHistory(grupo);
+        List<MensajesChat> historial = GrupoMensajesDB.getGroupChatHistory(grupo);
         SwingUtilities.invokeLater(() -> {
             textArea1.setText("");
-            for (ChatMessage msg : historial) {
+            for (MensajesChat msg : historial) {
                 appendMessage(msg.toString(), false);
             }
         });

@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MensajesDB {
-    private static final String URL = "jdbc:sqlite:C:\\DAM\\chatTCP\\chatTCP\\model\\ChatDB.db";
+    private static final String URL = "jdbc:sqlite:chatTCP/model/ChatDB.db";
 
     // Get user ID by username
     public static int getUserId(String username) {
@@ -87,8 +87,8 @@ public class MensajesDB {
             return false;
         }
     }
-    public static List<ChatMessage> getGroupChatHistory(String groupName) {
-        List<ChatMessage> messages = new ArrayList<>();
+    public static List<MensajesChat> getGroupChatHistory(String groupName) {
+        List<MensajesChat> messages = new ArrayList<>();
         String sql = """
         SELECT m.*, 
                u.nombre_usuario as sender_name,
@@ -112,7 +112,7 @@ public class MensajesDB {
                 String mensaje = rs.getString("mensaje");
                 Timestamp fecha = rs.getTimestamp("fecha");
 
-                messages.add(new ChatMessage(senderName, mensaje, fecha));
+                messages.add(new MensajesChat(senderName, mensaje, fecha));
             }
         } catch (SQLException e) {
             System.out.println("Error getting group chat history: " + e.getMessage());
@@ -122,8 +122,8 @@ public class MensajesDB {
     }
 
     // Get chat history between two users
-    public static List<ChatMessage> getChatHistory(String user1, String user2) {
-        List<ChatMessage> messages = new ArrayList<>();
+    public static List<MensajesChat> getChatHistory(String user1, String user2) {
+        List<MensajesChat> messages = new ArrayList<>();
         String sql = """
         SELECT m.*, 
                u1.nombre_usuario as sender_name,
@@ -156,7 +156,7 @@ public class MensajesDB {
                 String mensaje = rs.getString("mensaje");
                 Timestamp fecha = rs.getTimestamp("fecha");
 
-                messages.add(new ChatMessage(senderName, mensaje, fecha));
+                messages.add(new MensajesChat(senderName, mensaje, fecha));
             }
         } catch (SQLException e) {
             System.out.println("Error getting chat history: " + e.getMessage());

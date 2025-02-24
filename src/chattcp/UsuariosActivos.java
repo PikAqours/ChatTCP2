@@ -2,7 +2,7 @@ package chattcp;
 
 import java.util.concurrent.ConcurrentHashMap;
 
-public class ActiveUsers {
+public class UsuariosActivos {
     private static final ConcurrentHashMap<String, Boolean> activeUsers = new ConcurrentHashMap<>();
 
     public static synchronized boolean isUserActive(String username) {

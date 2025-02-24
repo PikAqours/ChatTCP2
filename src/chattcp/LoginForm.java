@@ -121,6 +121,20 @@ public class LoginForm extends JFrame {
 
         // Borde decorativo
         getRootPane().setBorder(BorderFactory.createMatteBorder(2, 2, 2, 2, PRIMARY_COLOR));
+        InputMap inputMap = rootPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+
+        ActionMap actionMap = rootPane.getActionMap();
+
+        // Atajo para la tecla ENTER (Agregar Usuario)
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "login");
+        actionMap.put("login", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // Simula el clic en el botón "Agregar"
+                loginButton.doClick();
+            }
+        });
+
     }
 
     /**

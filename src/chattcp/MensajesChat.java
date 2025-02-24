@@ -3,12 +3,12 @@ package chattcp;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 
-public class ChatMessage {
+public class MensajesChat {
     private final String sender;
     private final String message;
     private final Timestamp timestamp;
 
-    public ChatMessage(String sender, String message, Timestamp timestamp) {
+    public MensajesChat(String sender, String message, Timestamp timestamp) {
         this.sender = sender;
         this.message = message;
         this.timestamp = timestamp;
