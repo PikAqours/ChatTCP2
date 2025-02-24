@@ -25,6 +25,7 @@ public class ClienteGrupo extends JFrame implements Runnable {
     private DataOutputStream fsalida;
     private String usuario;
     private String grupo;
+    private String serverIP;
     private boolean repetir = true;
     private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     private long lastMessageTimestamp = 0;
@@ -37,16 +38,15 @@ public class ClienteGrupo extends JFrame implements Runnable {
     private final Font BUTTON_FONT = new Font("Segoe UI", Font.BOLD, 14);
     private boolean isAdmin = false;
    
-    private JPanel mainPanel;
-    private JPanel chatPanel;
-    private JPanel configPanel;
-    private ConfiguracionGrupo configuracionGrupo;
+
 
     public ClienteGrupo(Socket socket, String usuario, String grupo) {
         super("Chat de Grupo: " + grupo);
         this.socket = socket;
         this.usuario = usuario;
         this.grupo = grupo;
+        this.serverIP = socket.getInetAddress().getHostAddress();
+
 
         try {
             fentrada = new DataInputStream(socket.getInputStream());
@@ -217,7 +217,7 @@ public class ClienteGrupo extends JFrame implements Runnable {
     private boolean checkAdminStatus() {
         try {
             // Create new socket for DB connection
-            Socket dbSocket = new Socket("localhost", 44446);
+            Socket dbSocket = new Socket(serverIP, 44446);
             DataOutputStream dbOut = new DataOutputStream(dbSocket.getOutputStream());
             DataInputStream dbIn = new DataInputStream(dbSocket.getInputStream());
 
@@ -283,13 +283,25 @@ public class ClienteGrupo extends JFrame implements Runnable {
     }
 
     private void loadGroupChatHistory() {
-        List<MensajesChat> historial = GrupoMensajesDB.getGroupChatHistory(grupo);
-        SwingUtilities.invokeLater(() -> {
-            textArea1.setText("");
-            for (MensajesChat msg : historial) {
-                appendMessage(msg.toString(), false);
+        try (Socket historySocket = new Socket(serverIP, 44446)) {
+            DataOutputStream salida = new DataOutputStream(historySocket.getOutputStream());
+            DataInputStream entrada = new DataInputStream(historySocket.getInputStream());
+
+            // Enviar comando para obtener el historial del grupo
+            String comando = "OBTENER_HISTORIAL_GRUPO;" + grupo;
+            salida.writeUTF(comando);
+
+            // Leer respuesta
+            String response = entrada.readUTF();
+            if (response.equals("HISTORY_START")) {
+                SwingUtilities.invokeLater(() -> textArea1.setText("")); // Limpiar el chat actual
+                while (!(response = entrada.readUTF()).equals("HISTORY_END")) {
+                    appendMessage(response, false); // Pasar false para indicar que es del historial
+                }
             }
-        });
+        } catch (IOException e) {
+            System.out.println("Error al cargar el historial del chat de grupo: " + e.getMessage());
+        }
     }
 
     private void btnEnviarActionPerformed(java.awt.event.ActionEvent evt) {

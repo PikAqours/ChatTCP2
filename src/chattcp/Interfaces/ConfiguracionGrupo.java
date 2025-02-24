@@ -32,6 +32,7 @@ public class ConfiguracionGrupo extends JFrame {
     private final Socket socket;
     private final String usuario;
     private final String grupo;
+    private final String serverIP;
 
     // UI Components
     private JTextField txtNombreGrupo;
@@ -51,6 +52,7 @@ public class ConfiguracionGrupo extends JFrame {
         this.socket = socket;
         this.usuario = usuario;
         this.grupo = grupo;
+        this.serverIP = socket.getInetAddress().getHostAddress();
 
         initComponents();
         cargarUsuariosDelGrupo();
@@ -376,8 +378,8 @@ public class ConfiguracionGrupo extends JFrame {
     private void cargarUsuariosDelGrupo() {
         try {
             // Create DB connection
-            Socket dbSocket = new Socket("localhost", 44446);
-            Socket dbSocket2 = new Socket("localhost", 44446);
+            Socket dbSocket = new Socket(serverIP, 44446);
+            Socket dbSocket2 = new Socket(serverIP, 44446);
             DataOutputStream dbOut = new DataOutputStream(dbSocket.getOutputStream());
             DataOutputStream dbOut2 = new DataOutputStream(dbSocket2.getOutputStream());
             DataInputStream dbIn = new DataInputStream(dbSocket.getInputStream());
@@ -431,7 +433,7 @@ public class ConfiguracionGrupo extends JFrame {
     }
     private void guardarConfiguracion() {
         try {
-            Socket dbSocket = new Socket("localhost", 44446);
+            Socket dbSocket = new Socket(serverIP, 44446);
             DataOutputStream dbOut = new DataOutputStream(dbSocket.getOutputStream());
             DataInputStream dbIn = new DataInputStream(dbSocket.getInputStream());
 
@@ -526,7 +528,7 @@ public class ConfiguracionGrupo extends JFrame {
         String usuarioSeleccionado = listaUsuarios.getSelectedValue();
         if (usuarioSeleccionado != null) {
             try {
-                Socket dbSocket = new Socket("localhost", 44446);
+                Socket dbSocket = new Socket(serverIP, 44446);
                 DataOutputStream dbOut = new DataOutputStream(dbSocket.getOutputStream());
                 DataInputStream dbIn = new DataInputStream(dbSocket.getInputStream());
 

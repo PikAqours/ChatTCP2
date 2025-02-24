@@ -241,6 +241,21 @@ class DBHandler extends Thread {
                     }
                     break;
                 }
+                case "OBTENER_HISTORIAL_GRUPO": {
+                    if (partes.length >= 2) {
+                        String nombreGrupo = partes[1];
+                        List<MensajesChat> historial = GrupoMensajesDB.getGroupChatHistory(nombreGrupo);
+
+                        salida.writeUTF("HISTORY_START");
+                        for (MensajesChat msg : historial) {
+                            salida.writeUTF(msg.toString());
+                        }
+                        salida.writeUTF("HISTORY_END");
+                    } else {
+                        respuesta = "ERROR: Parámetros insuficientes";
+                    }
+                    break;
+                }
                 default: {
                     respuesta = "ERROR: Comando no reconocido";
                     break;
