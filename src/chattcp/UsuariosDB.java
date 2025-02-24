@@ -4,6 +4,8 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.mindrot.jbcrypt.BCrypt;
+
 
 public class UsuariosDB {
     private static final String URL = "jdbc:sqlite:chatTCP/model/ChatDB.db";
@@ -19,37 +21,46 @@ public class UsuariosDB {
         return conn;
     }
 
-    // Registra un usuario si no existe. Retorna true si se creó, false si ya existía.
+
+
     public synchronized static boolean registrarUsuario(String username, String password) {
         String sql = "INSERT INTO usuarios(nombre_usuario, contrasena) VALUES(?, ?)";
+        // Hashear la contraseña con salt
+        String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
         try (Connection conn = connect();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, username);
-            pstmt.setString(2, password);
+            pstmt.setString(2, hashedPassword);
             pstmt.executeUpdate();
             return true; // Usuario registrado
         } catch (SQLException e) {
             if (e.getMessage().contains("UNIQUE constraint failed")) {
-                return false; // Ya existe el usuario
+                return false; // Usuario ya existe
             }
             System.out.println("Error al registrar usuario: " + e.getMessage());
             return false;
         }
     }
 
+
     // Valida que el usuario exista y que la contraseña coincida.
     public synchronized static boolean validarUsuario(String username, String password) {
-        String sql = "SELECT * FROM usuarios WHERE nombre_usuario = ? AND contrasena = ?";
+        String sql = "SELECT contrasena FROM usuarios WHERE nombre_usuario = ?";
         try (Connection conn = connect();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, username);
-            pstmt.setString(2, password);
             ResultSet rs = pstmt.executeQuery();
-            return rs.next(); // Retorna true si se encontró el usuario con la contraseña correcta
-        } catch (SQLException e) {
-            System.out.println("Error al validar usuario: " + e.getMessage());
+            if (rs.next()) {
+                // Obtén el hash almacenado en la base de datos
+                String storedHash = rs.getString("contrasena");
+                // Comprueba que la contraseña ingresada coincida con el hash
+                return BCrypt.checkpw(password, storedHash);
+            }
+            return false;
+        } catch (Exception e) {
+            System.out.println("Nombre de usuario y contraseña incorrectos");
             return false;
         }
     }

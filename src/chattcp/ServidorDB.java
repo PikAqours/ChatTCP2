@@ -182,19 +182,36 @@ class DBHandler extends Thread {
                 }
 
                 case "ACTUALIZAR_GRUPO": {
-                    // Format: ACTUALIZAR_GRUPO;nombreGrupoActual;nuevoNombre;usuarios_actuales;usuarios_eliminados
                     if (partes.length >= 5) {
                         String grupoActual = partes[1];
                         String nuevoNombre = partes[2];
                         String[] usuariosActuales = partes[3].split(",");
                         String[] usuariosEliminados = partes[4].split(",");
 
+                        System.out.println("Actualizando grupo: " + grupoActual + " -> " + nuevoNombre);
+                        System.out.println("Usuarios actuales: " + String.join(", ", usuariosActuales));
+
                         boolean exito = UsuariosDB.actualizarGrupo(grupoActual, nuevoNombre,
                                 Arrays.asList(usuariosActuales),
                                 Arrays.asList(usuariosEliminados));
-                        respuesta = exito ? "OK" : "ERROR";
-                    } else {
-                        respuesta = "ERROR";
+
+                        if (exito) {
+                            try (Socket chatSocket = new Socket("localhost", 44444);
+                                 DataOutputStream chatOut = new DataOutputStream(chatSocket.getOutputStream())) {
+
+                                // Importante: Usar el nombre actual del grupo, no el nuevo
+
+                                chatOut.writeUTF("SERVER_COMMAND");
+                                chatOut.writeUTF("/cerrar_ventana_chat " + nuevoNombre);
+                                chatOut.flush();
+                            } catch (IOException e) {
+
+                                e.printStackTrace();
+                            }
+                            respuesta = "OK";
+                        } else {
+                            respuesta = "ERROR";
+                        }
                     }
                     break;
                 }

@@ -43,6 +43,20 @@ public class HiloServidorChat extends Thread {
             }
         }
     }
+    private void notificarCambioNombreGrupo(String grupoAntiguo, String grupoNuevo) {
+        List<String> miembros = UsuariosDB.obtenerMiembrosGrupo(grupoNuevo);
+        for (String miembro : miembros) {
+            Socket socketDestino = comun.getSocketUsuario(miembro);
+            if (socketDestino != null && !socketDestino.isClosed()) {
+                try {
+                    DataOutputStream fsalida = new DataOutputStream(socketDestino.getOutputStream());
+                    fsalida.writeUTF("/cambio_nombre_grupo " + grupoAntiguo + " " + grupoNuevo);
+                } catch (IOException e) {
+                    System.out.println("Error notificando cambio de nombre a " + miembro);
+                }
+            }
+        }
+    }
 
     private void enviarHistorialChat(String otroUsuario) {
         try {
@@ -84,6 +98,46 @@ public class HiloServidorChat extends Thread {
     public void run() {
         try {
             this.usuarioActual = fentrada.readUTF();
+
+            // Si es un comando del servidor, procesarlo inmediatamente
+            if ("SERVER_COMMAND".equals(usuarioActual)) {
+                String comando = fentrada.readUTF();
+
+
+                if (comando.startsWith("/cerrar_ventana_chat ")) {
+                    String grupo = comando.split(" ", 2)[1];
+
+
+                    List<String> miembros = UsuariosDB.obtenerMiembrosGrupo(grupo);
+
+
+                    for (String miembro : miembros) {
+
+                        Socket socketDestino = comun.getSocketUsuario(miembro);
+
+                        if (socketDestino != null) {
+
+                            if (!socketDestino.isClosed()) {
+                                try {
+
+                                    DataOutputStream fsalida = new DataOutputStream(socketDestino.getOutputStream());
+                                    fsalida.writeUTF("/cerrar_ventana_chat");
+                                    fsalida.flush();
+
+                                } catch (IOException e) {
+
+                                    e.printStackTrace();
+                                }
+                            } else {
+
+                            }
+                        } else {
+
+                        }
+                    }
+                }
+                return;
+            }
             if (!comun.agregarUsuario(usuarioActual, socket)) {
                 socket.close();
                 return;
@@ -91,6 +145,7 @@ public class HiloServidorChat extends Thread {
 
             while (true) {
                 String mensaje = fentrada.readUTF();
+
 
                 if (mensaje.startsWith("/privado ")) {
                     String[] partes = mensaje.split(" ", 3);
@@ -118,6 +173,31 @@ public class HiloServidorChat extends Thread {
                     if (UsuariosDB.sonContactos(usuarioActual, contacto)) {
                         enviarHistorialChat(contacto);
                     }
+                    else if (mensaje.startsWith("/notificar_cambio_grupo ")) {
+                        // Nuevo caso para manejar la notificación de cambio de nombre
+                        String[] partes = mensaje.split(" ", 3);
+                        if (partes.length >= 3) {
+                            String grupoAntiguo = partes[1];
+                            String grupoNuevo = partes[2];
+                            notificarCambioNombreGrupo(grupoAntiguo, grupoNuevo);
+                        }
+                    }
+                    else if (mensaje.startsWith("/cerrar_chat_grupo ")) {
+                        String grupoCerrar = mensaje.split(" ", 2)[1];
+                        List<String> miembros = UsuariosDB.obtenerMiembrosGrupo(grupoCerrar);
+                        for (String miembro : miembros) {
+                            Socket socketDestino = comun.getSocketUsuario(miembro);
+                            if (socketDestino != null && !socketDestino.isClosed()) {
+                                try {
+                                    DataOutputStream fsalida = new DataOutputStream(socketDestino.getOutputStream());
+                                    fsalida.writeUTF("/cerrar_ventana_chat");
+                                } catch (IOException e) {
+                                    System.out.println("Error enviando señal de cierre a " + miembro);
+                                }
+                            }
+                        }
+                    }
+
                 }
             }
         } catch (IOException e) {

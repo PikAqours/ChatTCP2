@@ -33,7 +33,7 @@ public class ClienteGrupo extends JFrame implements Runnable {
     private final Font MESSAGE_FONT = new Font("Segoe UI", Font.PLAIN, 14);
     private final Font BUTTON_FONT = new Font("Segoe UI", Font.BOLD, 14);
     private boolean isAdmin = false;
-
+   
     private JPanel mainPanel;
     private JPanel chatPanel;
     private JPanel configPanel;
@@ -180,6 +180,8 @@ public class ClienteGrupo extends JFrame implements Runnable {
                 btnSalirActionPerformed(null);
             }
         });
+
+
 
         // Borde decorativo de la ventana
         getRootPane().setBorder(BorderFactory.createMatteBorder(2, 2, 2, 2, PRIMARY_COLOR));
@@ -335,7 +337,17 @@ public class ClienteGrupo extends JFrame implements Runnable {
             });
         }
     }
-
+    private void cerrarVentana() {
+        try {
+            fsalida.writeUTF("*");
+            repetir = false;
+            socket.close();
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        } finally {
+            dispose();
+        }
+    }
     @Override
     public void run() {
         while(repetir) {
@@ -354,6 +366,31 @@ public class ClienteGrupo extends JFrame implements Runnable {
                     }
                 } else if (texto.startsWith("/actualizar_grupo ")) {
                     loadGroupChatHistory();
+                }
+                else if (texto.startsWith("/cambio_nombre_grupo ")) {
+                    // Nuevo caso para manejar cambio de nombre
+                    String[] parts = texto.split(" ", 3);
+                    if (parts.length >= 3) {
+                        String grupoAntiguo = parts[1];
+                        String grupoNuevo = parts[2];
+                        if (this.grupo.equals(grupoAntiguo)) {
+                            this.grupo = grupoNuevo;
+                            SwingUtilities.invokeLater(() -> {
+                                setTitle("Chat de Grupo: " + grupoNuevo);
+                            });
+                        }
+                    }
+                }
+                else  if (texto.equals("/cerrar_ventana_chat")) {
+                    System.out.println("Recibida señal de cierre"); // Log para depuración
+                    SwingUtilities.invokeLater(() -> {
+                        JOptionPane.showMessageDialog(this,
+                                "La configuración del grupo ha sido modificada.\nLa ventana de chat se cerrará.",
+                                "Información",
+                                JOptionPane.INFORMATION_MESSAGE);
+                        cerrarVentana();
+                    });
+                    break;
                 }
             } catch(IOException e) {
                 if (repetir) {

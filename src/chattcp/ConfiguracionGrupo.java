@@ -461,9 +461,16 @@ public class ConfiguracionGrupo extends JFrame {
             dbOut.writeUTF(comando);
             String respuesta = dbIn.readUTF();
 
-            dbSocket.close();
-
             if (respuesta.equals("OK")) {
+                // Enviar señal de cierre de chat a todos los usuarios
+                try {
+                    // Usar el socket que ya tenemos en la clase
+                    DataOutputStream fsalida = new DataOutputStream(socket.getOutputStream());
+                    fsalida.writeUTF("/cerrar_chat_grupo " + grupo);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
                 JOptionPane.showMessageDialog(this,
                         "Configuración guardada correctamente",
                         "Éxito",
@@ -475,6 +482,8 @@ public class ConfiguracionGrupo extends JFrame {
                         "Error",
                         JOptionPane.ERROR_MESSAGE);
             }
+
+            dbSocket.close();
         } catch (IOException e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this,
