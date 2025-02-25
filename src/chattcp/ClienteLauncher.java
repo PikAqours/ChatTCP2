@@ -34,10 +34,9 @@ public class ClienteLauncher {
         }
     }
 
-    // Opcional: Si deseas tener un main en ClienteLauncher, que simplemente inicie la pantalla de login:
+    // Cliente inicia desde aquí
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            // **TAMBIÉN APLICA EL LOOK AND FEEL EN EL MAIN DE ClienteLauncher (OPCIONAL)**
             try {
                 UIManager.setLookAndFeel( new FlatLightLaf() ); // Aplica FlatLaf
             } catch( UnsupportedLookAndFeelException ex ) {

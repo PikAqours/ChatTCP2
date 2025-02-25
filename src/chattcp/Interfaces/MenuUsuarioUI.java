@@ -3,6 +3,7 @@
     import chattcp.ServerConfig.Notificacion;
     import chattcp.ServerConfig.UsuariosDB;
 
+    import javax.imageio.ImageIO;
     import javax.swing.*;
     import javax.swing.border.EmptyBorder;
     import javax.swing.plaf.basic.BasicScrollBarUI;
@@ -10,10 +11,13 @@
     import javax.swing.table.DefaultTableModel;
     import java.awt.*;
     import java.awt.event.*;
+    import java.awt.image.BufferedImage;
     import java.io.DataInputStream;
     import java.io.DataOutputStream;
     import java.io.IOException;
+    import java.io.InputStream;
     import java.net.Socket;
+    import java.net.URL;
     import java.util.ArrayList;
     import java.util.List;
 
@@ -944,7 +948,7 @@
         }
 
         // Método para obtener los grupos del usuario de forma remota.
-        // Se asume que el servidorDB ha sido extendido para soportar el comando "OBTENER_GRUPOS"
+
         private List<String> obtenerGruposRemoto() {
             List<String> grupos = new ArrayList<>();
             try (Socket socket = new Socket(serverIP, 44446);
@@ -1116,7 +1120,7 @@
                 return;
             }
             try {
-                // Verify user belongs to the group
+                // Verificar usuarios
                 if (!verificarPertenenciaGrupoRemoto(nombreUsuario, grupo)) {
                     JOptionPane.showMessageDialog(this,
                             "No puedes acceder a este grupo porque no eres miembro.",
@@ -1179,7 +1183,7 @@
                 return;
             }
             try {
-                // First verify they are contacts through the server
+
                 boolean sonContactos = verificarContactoRemoto(contacto);
 
                 if (!sonContactos) {
@@ -1232,6 +1236,7 @@
                 return false;
             }
         }
+
         //Icono Online
         private ImageIcon getIconoEstado(boolean isOnline) {
             String iconPath = isOnline ? "chatTCP/res/online_icon.png" : "chatTCP/res/offline_icon.png";

@@ -50,8 +50,7 @@ public class Servidor {
             Socket socket = servidorChat.accept(); // Esperando conexión del cliente de chat
 
             if (comun.getConexiones() < maximo) {
-                // Create and start the chat thread immediately
-                // The username will be handled in HiloServidorChat
+
                 HiloServidorChat hilo = new HiloServidorChat(socket, comun);
                 hilo.start();
             } else {

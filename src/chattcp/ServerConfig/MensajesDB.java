@@ -7,7 +7,7 @@ import java.util.List;
 public class MensajesDB {
     private static final String URL = "jdbc:sqlite:chatTCP/model/ChatDB.db";
 
-    // Get user ID by username
+    // Conseguir el usuario por el id
     public static int getUserId(String username) {
         String sql = "SELECT id FROM usuarios WHERE nombre_usuario = ?";
 
@@ -121,7 +121,7 @@ public class MensajesDB {
         return messages;
     }
 
-    // Get chat history between two users
+    // Conseguir el historial de chat entre dos usuarios
     public static List<MensajesChat> getChatHistory(String user1, String user2) {
         List<MensajesChat> messages = new ArrayList<>();
         String sql = """

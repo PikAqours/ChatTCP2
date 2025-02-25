@@ -7,7 +7,7 @@ import java.util.List;
 public class GrupoMensajesDB {
     private static final String URL = "jdbc:sqlite:chatTCP/model/ChatDB.db";
 
-    // Save a group message
+    // Guardar mensajes de grupo
     public static boolean saveGroupMessage(String fromUser, String groupName, String message) {
         String sql = """
             INSERT INTO mensajes (id_usuario, id_grupo, mensaje, fecha) 
@@ -34,7 +34,7 @@ public class GrupoMensajesDB {
         }
     }
 
-    // Get chat history for a group
+    // Consseguir el historial del grupo
     public static List<MensajesChat> getGroupChatHistory(String groupName) {
         List<MensajesChat> messages = new ArrayList<>();
         String sql = """

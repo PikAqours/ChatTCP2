@@ -27,7 +27,7 @@ public class HiloServidorChat extends Thread {
     }
 
     private void enviarMensajePrivado(String destinatario, String contenido) {
-        // Save message to database
+        // Almacenar mensaje en la base de datos
         if (MensajesDB.saveMessage(usuarioActual, destinatario, contenido)) {
             // Si el mensaje se guardó correctamente, enviar al usuario y su socket de notificaciones
             Socket socketDestino = comun.getSocketUsuario(destinatario);

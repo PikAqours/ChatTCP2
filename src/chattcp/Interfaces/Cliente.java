@@ -32,7 +32,7 @@ public class Cliente extends javax.swing.JFrame implements Runnable {
     private final Font BUTTON_FONT = new Font("Segoe UI", Font.BOLD, 14);
 
 
-    // Constructor for private chat
+    // Constructor para chat privado
     public Cliente(Socket s, String nombre, String destinatario) {
         super("Chat Privado: " + nombre + " - " + destinatario);
         this.destinatario = destinatario;
@@ -60,10 +60,10 @@ public class Cliente extends javax.swing.JFrame implements Runnable {
             fsalida = new DataOutputStream(s.getOutputStream());
             fsalida.writeUTF(nombre);
 
-            // Load chat history after initializing components
+            // Cargar el historial del chat después de inicializar los componentes
             loadChatHistory();
 
-            // Start the message receiving thread
+            // Iniciar el hilo de recepción de mensajes
             Thread messageThread = new Thread(this);
             messageThread.start();
 
@@ -81,14 +81,14 @@ public class Cliente extends javax.swing.JFrame implements Runnable {
             DataOutputStream salida = new DataOutputStream(historySocket.getOutputStream());
             DataInputStream entrada = new DataInputStream(historySocket.getInputStream());
 
-            // Request chat history from server
+            // Solicitar historial de chat al servidor
             String comando = "OBTENER_HISTORIAL;" + nombre + ";" + destinatario;
             salida.writeUTF(comando);
 
-            // Read response
+            // Leer respuesta
             String response = entrada.readUTF();
             if (response.equals("HISTORY_START")) {
-                SwingUtilities.invokeLater(() -> textArea1.setText("")); // Clear current chat
+                SwingUtilities.invokeLater(() -> textArea1.setText("")); // Limpiar el chat actual
                 while (!(response = entrada.readUTF()).equals("HISTORY_END")) {
                     appendMessage(response, false); // Pass false to indicate this is from history
                 }
@@ -110,12 +110,12 @@ public class Cliente extends javax.swing.JFrame implements Runnable {
             String mensajePrivado = "/privado " + destinatario + " " + texto;
             fsalida.writeUTF(mensajePrivado);
 
-            // Format message with timestamp and username consistently
+
             String formattedMessage = String.format("[%s] %s> %s",
                     sdf.format(new Timestamp(System.currentTimeMillis())),
                     nombre,
                     texto);
-            appendMessage(formattedMessage, true); // Pass true for new messages
+            appendMessage(formattedMessage, true);
 
             mensaje.setText("");
             mensaje.requestFocus();
@@ -284,18 +284,18 @@ public class Cliente extends javax.swing.JFrame implements Runnable {
 
     private void appendMessage(String text, boolean isNewMessage) {
         if (text != null && !text.isEmpty()) {
-            // For new messages (not from history), check if we've already displayed this message
+
             if (isNewMessage) {
-                // Extract timestamp from the message format [YYYY-MM-DD HH:mm:ss]
+
                 try {
                     String timestampStr = text.substring(1, 20);
                     Timestamp msgTimestamp = Timestamp.valueOf(timestampStr);
                     if (msgTimestamp.getTime() <= lastMessageTimestamp) {
-                        return; // Skip if we've already shown this message
+                        return;
                     }
                     lastMessageTimestamp = msgTimestamp.getTime();
                 } catch (Exception e) {
-                    // If there's any error parsing the timestamp, just show the message
+
                 }
             }
 
@@ -312,7 +312,7 @@ public class Cliente extends javax.swing.JFrame implements Runnable {
 
 
     private void handleUpdateNotification(String sender) {
-        // Reload chat history when we receive an update notification
+
         try {
             fsalida.writeUTF("/historial " + sender);
         } catch (IOException e) {
@@ -351,7 +351,7 @@ public class Cliente extends javax.swing.JFrame implements Runnable {
                     });
                     while (!(texto = fentrada.readUTF()).equals("HISTORY_END")) {
                         if (texto.startsWith("HIST:")) {
-                            appendMessage(texto.substring(5), false); // Pass false for history messages
+                            appendMessage(texto.substring(5), false); // Pasar falso para indicar que esto es del historial
                         }
                     }
                 } else if (texto.equals("*")) {
@@ -395,7 +395,7 @@ public class Cliente extends javax.swing.JFrame implements Runnable {
         }
     }
 
-    // Variables declaration
+    // Declaración de variables
     private JButton btnEnviar;
     private JButton btnSalir;
     private JTextField mensaje;

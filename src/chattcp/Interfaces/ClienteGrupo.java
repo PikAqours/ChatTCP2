@@ -216,21 +216,21 @@ public class ClienteGrupo extends JFrame implements Runnable {
     }
     private boolean checkAdminStatus() {
         try {
-            // Create new socket for DB connection
+            // Crear socket
             Socket dbSocket = new Socket(serverIP, 44446);
             DataOutputStream dbOut = new DataOutputStream(dbSocket.getOutputStream());
             DataInputStream dbIn = new DataInputStream(dbSocket.getInputStream());
 
-            // Send command
+            // Enviar Comando
             String comando = String.format("CHECK_ADMIN;%s;%s", grupo, usuario);
             dbOut.writeUTF(comando);
 
-            // Read response
+            // Leer respuesta
 
             boolean isAdmin = dbIn.readBoolean();
 
 
-            // Close DB connection
+            // Cerrar
             dbSocket.close();
 
             return isAdmin;
@@ -338,7 +338,7 @@ public class ClienteGrupo extends JFrame implements Runnable {
                     }
                     lastMessageTimestamp = msgTimestamp.getTime();
                 } catch (Exception e) {
-                    // If there's any error parsing the timestamp, just show the message
+
                 }
             }
 

@@ -84,17 +84,12 @@ public class ComunHilos {
         this.mensajes = mensajes;
     }
 
-    // Remove this method as it's redundant with agregarUsuario
-    // public synchronized void addConexion(Socket s) {
-    //     if (conexiones.size() < maximo) {
-    //         conexiones.add(s);
-    //     }
-    // }
+
 
     // Eliminar un socket desconectado
     public synchronized void eliminarSocket(Socket s) {
         conexiones.remove(s);
-        // Also remove from usuariosConectados if present
+
         usuariosConectados.entrySet().removeIf(entry -> entry.getValue().equals(s));
     }
 

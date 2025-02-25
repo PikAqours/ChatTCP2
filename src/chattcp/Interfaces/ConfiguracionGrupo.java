@@ -28,13 +28,13 @@ public class ConfiguracionGrupo extends JFrame {
 
     private static final Dimension MAIN_LIST_SIZE = new Dimension(200, 120); // Size for main list
     private static final Dimension ADD_LIST_SIZE = new Dimension(200, 100);  // Size for add users list
-    // Instance variables
+
     private final Socket socket;
     private final String usuario;
     private final String grupo;
     private final String serverIP;
 
-    // UI Components
+    // Componentes de la interfaz
     private JTextField txtNombreGrupo;
     private JList<String> listaUsuarios;
     private DefaultListModel<String> listModelUsuarios;
@@ -269,7 +269,7 @@ public class ConfiguracionGrupo extends JFrame {
         JPanel bottomPanel = new JPanel(new BorderLayout());
         bottomPanel.setBackground(BG_COLOR);
 
-        // Create a panel for the buttons with FlowLayout
+        // Crear panel con flowlayout
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
         buttonPanel.setBackground(BG_COLOR);
         buttonPanel.setBorder(new EmptyBorder(10, 5, 10, 0));
@@ -278,7 +278,7 @@ public class ConfiguracionGrupo extends JFrame {
         btnGuardar = createStyledButton("Guardar", PRIMARY_COLOR);
         btnCancelar = createStyledButton("Cancelar", CANCEL_COLOR);
 
-        // Make buttons the same size as other buttons
+
         btnGuardar.setPreferredSize(new Dimension(160, 50));
         btnCancelar.setPreferredSize(new Dimension(160, 50));
 
@@ -337,9 +337,9 @@ public class ConfiguracionGrupo extends JFrame {
         button.setForeground(Color.WHITE);
         button.setBackground(backgroundColor);
         button.setFocusPainted(false);
-        button.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12)); // Reduced horizontal padding
-        // Increased width from 150 to 160 to accommodate longer text
-        button.setPreferredSize(new Dimension(160, 50)); // Reduced height from 35 to 30
+        button.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+
+        button.setPreferredSize(new Dimension(160, 50));
 
         button.addMouseListener(new MouseAdapter() {
             @Override
@@ -385,12 +385,12 @@ public class ConfiguracionGrupo extends JFrame {
             DataInputStream dbIn = new DataInputStream(dbSocket.getInputStream());
             DataInputStream dbIn2 = new DataInputStream(dbSocket2.getInputStream());
 
-            // Get group users
+            // Conseguir el grupo de usuarios
             dbOut.writeUTF("OBTENER_USUARIOS_GRUPO;" + grupo);
             String usuariosGrupo = dbIn.readUTF();
             dbSocket.close();
 
-            // Get available users
+            // Conseguir los usuarios disponibles
 
             dbOut2.writeUTF("OBTENER_USUARIOS_DISPONIBLES_GRUPO;" + grupo);
             String usuariosDisponibles = dbIn2.readUTF();
@@ -399,9 +399,9 @@ public class ConfiguracionGrupo extends JFrame {
 
 
 
-            // Update UI
+            // Actualizar Interfaz
             SwingUtilities.invokeLater(() -> {
-                // Load group users
+                // Cargar grupo
                 listModelUsuarios.clear();
                 if (!usuariosGrupo.equals("ERROR")) {
                     String[] usuarios = usuariosGrupo.split(",");
@@ -412,7 +412,7 @@ public class ConfiguracionGrupo extends JFrame {
                     }
                 }
 
-                // Load available users
+                // Cargar usuarios disponibles
                 listModelUsuariosDisponibles.clear();
                 if (!usuariosDisponibles.equals("ERROR")) {
                     String[] usuarios = usuariosDisponibles.split(",");
@@ -437,23 +437,23 @@ public class ConfiguracionGrupo extends JFrame {
             DataOutputStream dbOut = new DataOutputStream(dbSocket.getOutputStream());
             DataInputStream dbIn = new DataInputStream(dbSocket.getInputStream());
 
-            // Collect all changes
+            // Coleccionar todos los cambios
             String nuevoNombre = txtNombreGrupo.getText();
 
-            // Get current users in the list
+            // Conseguir los usuarios de la lista
             List<String> usuariosActuales = new ArrayList<>();
             for (int i = 0; i < listModelUsuarios.size(); i++) {
                 usuariosActuales.add(listModelUsuarios.getElementAt(i));
             }
 
-            // Get users available (these were removed from the group)
+            // Conseguir los usuarios disponibles
             List<String> usuariosEliminados = new ArrayList<>();
             for (int i = 0; i < listModelUsuariosDisponibles.size(); i++) {
                 String usuario = listModelUsuariosDisponibles.getElementAt(i);
                 usuariosEliminados.add(usuario);
             }
 
-            // Send update command with both lists
+            //Comando para actualizar
             String comando = String.format("ACTUALIZAR_GRUPO;%s;%s;%s;%s",
                     grupo,
                     nuevoNombre,
