@@ -256,6 +256,31 @@ class DBHandler extends Thread {
                     }
                     break;
                 }
+                case "BORRAR_CONTACTO": {
+                    // Formato: "BORRAR_CONTACTO;usuarioActual;contactoAEliminar"
+                    if (partes.length >= 3) {
+                        String usuarioActual = partes[1];
+                        String contactoAEliminar = partes[2];
+                        boolean exito = UsuariosDB.borrarContacto(usuarioActual, contactoAEliminar);
+                        respuesta = exito ? "OK" : "ERROR: No se pudo borrar el contacto";
+                    } else {
+                        respuesta = "ERROR: Parámetros insuficientes";
+                    }
+                    break;
+                }
+                case "ELIMINAR_GRUPO": {
+                    // Formato: "ELIMINAR_GRUPO;nombreGrupo"
+                    if (partes.length >= 2) {
+                        String nombreGrupo = partes[1];
+                        boolean exito = UsuariosDB.eliminarGrupo(nombreGrupo);
+                        respuesta = exito ? "OK" : "ERROR: No se pudo eliminar el grupo";
+                    } else {
+                        respuesta = "ERROR: Parámetros insuficientes";
+                    }
+                    break;
+                }
+
+
                 default: {
                     respuesta = "ERROR: Comando no reconocido";
                     break;

@@ -487,6 +487,89 @@ public class UsuariosDB {
             return false;
         }
     }
+    public static boolean borrarContacto(String usuarioActual, String contactoAEliminar) {
+        String sql = "DELETE FROM contactos " +
+                "WHERE id_usuario = (SELECT id FROM usuarios WHERE nombre_usuario = ?) " +
+                "AND id_contacto = (SELECT id FROM usuarios WHERE nombre_usuario = ?)";
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, usuarioActual);
+            pstmt.setString(2, contactoAEliminar);
+            int affected = pstmt.executeUpdate();
+            return affected > 0;
+        } catch (SQLException e) {
+            System.out.println("Error al borrar contacto: " + e.getMessage());
+            return false;
+        }
+    }
+    public static boolean eliminarGrupo(String nombreGrupo) {
+        Connection conn = null;
+        try {
+            conn = connect();
+            conn.setAutoCommit(false);
 
+            // 1. Obtener el ID del grupo a partir de su nombre
+            int idGrupo;
+            String queryId = "SELECT id FROM grupos WHERE nombre = ?";
+            try (PreparedStatement pstmt = conn.prepareStatement(queryId)) {
+                pstmt.setString(1, nombreGrupo);
+                ResultSet rs = pstmt.executeQuery();
+                if (rs.next()) {
+                    idGrupo = rs.getInt("id");
+                } else {
+                    conn.rollback();
+                    return false; // El grupo no existe
+                }
+            }
+
+            // 2. Eliminar los mensajes asociados al grupo (tabla "mensajes" y columna "id_grupo")
+            String deleteMensajes = "DELETE FROM mensajes WHERE id_grupo = ?";
+            try (PreparedStatement pstmt = conn.prepareStatement(deleteMensajes)) {
+                pstmt.setInt(1, idGrupo);
+                pstmt.executeUpdate();
+            }
+
+            // 3. Eliminar las relaciones de usuarios con el grupo (tabla "grupo_usuario")
+            String deleteUsuarios = "DELETE FROM grupo_usuario WHERE id_grupo = ?";
+            try (PreparedStatement pstmt = conn.prepareStatement(deleteUsuarios)) {
+                pstmt.setInt(1, idGrupo);
+                pstmt.executeUpdate();
+            }
+
+            // 4. Eliminar el grupo de la tabla "grupos"
+            String deleteGrupo = "DELETE FROM grupos WHERE id = ?";
+            try (PreparedStatement pstmt = conn.prepareStatement(deleteGrupo)) {
+                pstmt.setInt(1, idGrupo);
+                pstmt.executeUpdate();
+            }
+
+            conn.commit();
+            return true;
+        } catch (SQLException e) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+            }
+            System.out.println("Error al eliminar grupo: " + e.getMessage());
+            return false;
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
 
 }
+
+
+
+
+

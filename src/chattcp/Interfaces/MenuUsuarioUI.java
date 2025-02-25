@@ -167,7 +167,7 @@
                     BorderFactory.createEmptyBorder(5, 10, 5, 10)
             ));
 
-            JButton btnAgregarContacto = createStyledButton("Agregar Contacto");
+            JButton btnAgregarContacto = createStyledButton("Gestión Contactos");
             JButton btnChatear = createStyledButton("Chatear con Contacto");
             contactsSection.add(btnAgregarContacto);
             contactsSection.add(btnChatear);
@@ -298,7 +298,7 @@
             // Efectos al pasar el mouse
             button.addMouseListener(new MouseAdapter() {
                 public void mouseEntered(MouseEvent evt) {
-                    if (text.equals("Salir")) {
+                    if (text.equals("Eliminar") || text.equals("Cancelar")) {
                         button.setBackground(new Color(200, 35, 51)); // Rojo más oscuro para hover
                     } else {
                         button.setBackground(ACCENT_COLOR);
@@ -306,7 +306,7 @@
                     button.setCursor(new Cursor(Cursor.HAND_CURSOR));
                 }
                 public void mouseExited(MouseEvent evt) {
-                    if (text.equals("Salir")) {
+                    if (text.equals("Eliminar") || text.equals("Cancelar")) {
                         button.setBackground(new Color(220, 53, 69)); // Rojo original
                     } else {
                         button.setBackground(PRIMARY_COLOR);
@@ -375,35 +375,33 @@
             }
         }
         private void mostrarListaUsuarios() {
-            List<String> usuarios = obtenerUsuariosDisponibles();
+
+            List<String> usuarios = obtenerUsuarios(); // Método que retorna la lista de usuarios a mostrar
             if (usuarios.isEmpty()) {
                 JOptionPane.showMessageDialog(this,
-                        "No hay usuarios disponibles para agregar.",
+                        "No hay usuarios disponibles.",
                         "Información",
                         JOptionPane.INFORMATION_MESSAGE);
                 return;
             }
 
-            // Crear ventana de diálogo estilizada
-            JFrame frame = new JFrame("Agregar Contacto");
+            JFrame frame = new JFrame("Contactos");
             frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
             frame.setSize(400, 300);
             frame.setLocationRelativeTo(this);
             frame.setResizable(false);
 
-            // Configurar el color de la barra de título
+            // Configurar el color de la barra de título (si tienes esa funcionalidad)
             frame.getRootPane().putClientProperty("JRootPane.titleBarBackground", PRIMARY_COLOR);
             frame.getRootPane().putClientProperty("JRootPane.titleBarForeground", Color.WHITE);
 
-            // Panel principal
             JPanel mainPanel = new JPanel(new BorderLayout(15, 15));
             mainPanel.setBackground(BG_COLOR);
             mainPanel.setBorder(new EmptyBorder(20, 25, 20, 25));
 
-            // Panel superior con título
             JPanel headerPanel = new JPanel(new BorderLayout());
             headerPanel.setBackground(BG_COLOR);
-            JLabel titleLabel = new JLabel("Selecciona un usuario para agregar", SwingConstants.CENTER);
+            JLabel titleLabel = new JLabel("Selecciona un usuario", SwingConstants.CENTER);
             titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
             titleLabel.setForeground(PRIMARY_COLOR);
             headerPanel.add(titleLabel, BorderLayout.CENTER);
@@ -415,8 +413,6 @@
             JList<String> userList = new JList<>(listModel);
             userList.setFont(new Font("Segoe UI", Font.PLAIN, 14));
             userList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-
-            // Personalizar el renderizado de las celdas
             userList.setCellRenderer(new DefaultListCellRenderer() {
                 @Override
                 public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
@@ -432,7 +428,6 @@
                 }
             });
 
-            // Panel de desplazamiento con borde personalizado
             JScrollPane scrollPane = new JScrollPane(userList);
             scrollPane.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(PRIMARY_COLOR),
@@ -440,24 +435,28 @@
             ));
             scrollPane.setBackground(Color.WHITE);
 
-            // Panel contenedor para la lista con padding
             JPanel listPanel = new JPanel(new BorderLayout());
             listPanel.setBackground(BG_COLOR);
             listPanel.add(scrollPane, BorderLayout.CENTER);
             listPanel.setBorder(new EmptyBorder(5, 0, 5, 0));
 
-            // Panel de botones
+            // Panel de botones con los tres botones: Agregar, Eliminar y Cancelar
             JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
             buttonPanel.setBackground(BG_COLOR);
 
             JButton addButton = createStyledButton("Agregar");
             addButton.setPreferredSize(new Dimension(120, 35));
 
+            JButton deleteButton = createStyledButton("Eliminar");
+            deleteButton.setPreferredSize(new Dimension(120, 35));
+            deleteButton.setBackground(new Color(220, 53, 69));
+
             JButton cancelButton = createStyledButton("Cancelar");
             cancelButton.setBackground(new Color(220, 53, 69));
             cancelButton.setPreferredSize(new Dimension(120, 35));
 
             buttonPanel.add(addButton);
+            buttonPanel.add(deleteButton);
             buttonPanel.add(cancelButton);
 
             // Agregar componentes al panel principal
@@ -465,13 +464,10 @@
             mainPanel.add(listPanel, BorderLayout.CENTER);
             mainPanel.add(buttonPanel, BorderLayout.SOUTH);
 
-            // Agregar panel principal a la ventana
             frame.add(mainPanel);
-
-            // Borde decorativo de la ventana
             frame.getRootPane().setBorder(BorderFactory.createMatteBorder(2, 2, 2, 2, PRIMARY_COLOR));
 
-            // Configurar eventos
+            // Configurar eventos de botones
             addButton.addActionListener(e -> {
                 String seleccionado = userList.getSelectedValue();
                 if (seleccionado != null) {
@@ -485,9 +481,22 @@
                 }
             });
 
+            deleteButton.addActionListener(e -> {
+                String seleccionado = userList.getSelectedValue();
+                if (seleccionado != null) {
+                    frame.dispose();
+                    borrarContacto(seleccionado);
+                } else {
+                    JOptionPane.showMessageDialog(frame,
+                            "Por favor, selecciona un usuario de la lista",
+                            "Aviso",
+                            JOptionPane.WARNING_MESSAGE);
+                }
+            });
+
             cancelButton.addActionListener(e -> frame.dispose());
 
-            // Doble clic para seleccionar
+            // Doble clic para ejecutar la acción de agregar (o podrías definirlo según el botón que desees)
             userList.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
@@ -501,39 +510,55 @@
                 }
             });
 
-
+            // Atajos de teclado para agilizar la selección
             JRootPane rootPane = frame.getRootPane();
-
             InputMap inputMap = rootPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
-
-
             ActionMap actionMap = rootPane.getActionMap();
 
-            // Atajo para la tecla ENTER (Agregar Usuario)
-            inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "agregarUsuario"); // Asocia ENTER a la acción "agregarUsuario"
-            actionMap.put("agregarUsuario", new AbstractAction() { // Define la acción "agregarUsuario"
+            inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "accionAgregar");
+            actionMap.put("accionAgregar", new AbstractAction() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
-                    // Simula el clic en el botón "Agregar"
                     addButton.doClick();
                 }
             });
 
-            // Atajo para la tecla ESCAPE (Cancelar)
-            inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "cancelarDialogo"); // Asocia ESCAPE a la acción "cancelarDialogo"
-            actionMap.put("cancelarDialogo", new AbstractAction() { // Define la acción "cancelarDialogo"
+            inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "accionCancelar");
+            actionMap.put("accionCancelar", new AbstractAction() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
-                    // Simula el clic en el botón "Cancelar"
                     cancelButton.doClick();
                 }
             });
-            // Mostrar la ventana
+
             frame.setVisible(true);
         }
 
-        // Este método ya accede de forma remota
-        private List<String> obtenerUsuariosDisponibles() {
+
+        private void borrarContacto(String usuario) {
+            try (Socket socket = new Socket(serverIP, 44446);
+                 DataOutputStream salida = new DataOutputStream(socket.getOutputStream());
+                 DataInputStream entrada = new DataInputStream(socket.getInputStream())) {
+
+                // Se envía el comando con el formato: BORRAR_CONTACTO;usuarioActual;contactoAEliminar
+                String comando = "BORRAR_CONTACTO;" + nombreUsuario + ";" + usuario;
+                salida.writeUTF(comando);
+                String respuesta = entrada.readUTF();
+                if (respuesta.equals("OK")) {
+                    JOptionPane.showMessageDialog(this, usuario + " ha sido borrado de tus contactos.",
+                            "Contacto Borrado", JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(this, "No se pudo borrar el contacto " + usuario + " no está en tu lista de contactos",
+                            "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+
+
+        private List<String> obtenerUsuarios() {
             List<String> usuarios = new ArrayList<>();
             try (Socket socket = new Socket(serverIP, 44446);
                  DataOutputStream salida = new DataOutputStream(socket.getOutputStream());

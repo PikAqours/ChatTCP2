@@ -33,6 +33,7 @@ public class ConfiguracionGrupo extends JFrame {
     private final String usuario;
     private final String grupo;
     private final String serverIP;
+    private JButton btnEliminarGrupo;
 
     // Componentes de la interfaz
     private JTextField txtNombreGrupo;
@@ -52,7 +53,8 @@ public class ConfiguracionGrupo extends JFrame {
         this.socket = socket;
         this.usuario = usuario;
         this.grupo = grupo;
-        this.serverIP = socket.getInetAddress().getHostAddress();
+        this.serverIP=socket.getInetAddress().getHostAddress();
+
 
         initComponents();
         cargarUsuariosDelGrupo();
@@ -174,6 +176,7 @@ public class ConfiguracionGrupo extends JFrame {
 
         btnEliminarUsuario = createStyledButton("Eliminar Usuario", DELETE_COLOR);
         btnPromoverAdmin = createStyledButton("Promover a Admin", PRIMARY_COLOR);
+        btnEliminarGrupo = createStyledButton("Eliminar Usuario", DELETE_COLOR);
 
         buttonsPanel.add(btnEliminarUsuario);
         buttonsPanel.add(btnPromoverAdmin);
@@ -265,28 +268,29 @@ public class ConfiguracionGrupo extends JFrame {
 
         gbc.gridwidth = 1;
     }
+
+
     private JPanel createBottomPanel() {
         JPanel bottomPanel = new JPanel(new BorderLayout());
         bottomPanel.setBackground(BG_COLOR);
 
-        // Crear panel con flowlayout
+        // Panel con FlowLayout para los botones
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
         buttonPanel.setBackground(BG_COLOR);
         buttonPanel.setBorder(new EmptyBorder(10, 5, 10, 0));
 
-
         btnGuardar = createStyledButton("Guardar", PRIMARY_COLOR);
         btnCancelar = createStyledButton("Cancelar", CANCEL_COLOR);
 
+        btnEliminarGrupo = createStyledButton("Eliminar Grupo", DELETE_COLOR);
 
         btnGuardar.setPreferredSize(new Dimension(160, 50));
         btnCancelar.setPreferredSize(new Dimension(160, 50));
+        btnEliminarGrupo.setPreferredSize(new Dimension(160, 50));
 
+        buttonPanel.add(btnEliminarGrupo);
         buttonPanel.add(btnGuardar);
         buttonPanel.add(btnCancelar);
-
-
-
 
         bottomPanel.add(buttonPanel, BorderLayout.EAST);
 
@@ -294,6 +298,7 @@ public class ConfiguracionGrupo extends JFrame {
 
         return bottomPanel;
     }
+
 
     private JLabel createLabel(String text) {
         JLabel label = new JLabel(text);
@@ -363,6 +368,7 @@ public class ConfiguracionGrupo extends JFrame {
         return switch (buttonText) {
             case "Cancelar" -> new Color(148, 157, 165);
             case "Eliminar Usuario" -> new Color(200, 35, 51);
+            case "Eliminar Grupo" -> new Color(200, 35, 51);
             default -> ACCENT_COLOR;
         };
     }
@@ -373,7 +379,50 @@ public class ConfiguracionGrupo extends JFrame {
         btnAgregarUsuario.addActionListener(e -> agregarUsuario());
         btnEliminarUsuario.addActionListener(e -> eliminarUsuarioSeleccionado());
         btnPromoverAdmin.addActionListener(e -> promoverUsuarioAdmin());
+
+        // Acción para eliminar el grupo
+        btnEliminarGrupo.addActionListener(e -> eliminarGrupo());
     }
+    private void eliminarGrupo() {
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "¿Estás seguro de eliminar el grupo?\nEsta acción borrará también todos los mensajes asociados.",
+                "Confirmar eliminación",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE);
+        if (confirm != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        try (Socket dbSocket = new Socket(serverIP, 44446);
+             DataOutputStream dbOut = new DataOutputStream(dbSocket.getOutputStream());
+             DataInputStream dbIn = new DataInputStream(dbSocket.getInputStream())) {
+
+            // Se envía el comando con el formato: "ELIMINAR_GRUPO;nombreGrupo"
+            String comando = "ELIMINAR_GRUPO;" + grupo;
+            dbOut.writeUTF(comando);
+            String respuesta = dbIn.readUTF();
+
+            if (respuesta.equals("OK")) {
+                JOptionPane.showMessageDialog(this,
+                        "El grupo se eliminó correctamente.",
+                        "Éxito",
+                        JOptionPane.INFORMATION_MESSAGE);
+                dispose();
+            } else {
+                JOptionPane.showMessageDialog(this,
+                        "No se pudo eliminar el grupo.\n" + respuesta,
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this,
+                    "Error al comunicarse con el servidor.",
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
 
     private void cargarUsuariosDelGrupo() {
         try {
