@@ -298,7 +298,7 @@
             // Efectos al pasar el mouse
             button.addMouseListener(new MouseAdapter() {
                 public void mouseEntered(MouseEvent evt) {
-                    if (text.equals("Eliminar") || text.equals("Cancelar")) {
+                    if (text.equals("Eliminar") || text.equals("Cancelar") ||  text.equals("Salir")) {
                         button.setBackground(new Color(200, 35, 51)); // Rojo más oscuro para hover
                     } else {
                         button.setBackground(ACCENT_COLOR);
@@ -306,7 +306,7 @@
                     button.setCursor(new Cursor(Cursor.HAND_CURSOR));
                 }
                 public void mouseExited(MouseEvent evt) {
-                    if (text.equals("Eliminar") || text.equals("Cancelar")) {
+                    if (text.equals("Eliminar") || text.equals("Cancelar") || text.equals("Salir")) {
                         button.setBackground(new Color(220, 53, 69)); // Rojo original
                     } else {
                         button.setBackground(PRIMARY_COLOR);
